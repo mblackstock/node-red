@@ -23,6 +23,7 @@ var log = require("../log");
 var events = require("../events");
 
 var storage = null;
+var settings = null;
 
 var nodes = {};
 var activeConfig = [];
@@ -46,6 +47,7 @@ events.on('type-registered',function(type) {
  */ 
 function parseConfig() {
     var i;
+    var j;
     var nt;
     missingTypes = [];
     
@@ -77,21 +79,115 @@ function parseConfig() {
         var nn = null;
         // TODO: remove workspace in next release+1
         if (activeConfig[i].type != "workspace" && activeConfig[i].type != "tab") {
-            nt = typeRegistry.get(activeConfig[i].type);
+            
+            // what device and node type
+            var nodeDeviceId = activeConfig[i].deviceId || settings.deviceId;
+            var nodeType = activeConfig[i].type;
+
+            util.log("creating node "+activeConfig[i].id+":"+activeConfig[i].name);
+
+            // create a placeholder node if the node is on another device
+            if (nodeDeviceId != settings.deviceId) {
+                util.log("adding placeholder node for "+activeConfig[i].id+" on device "+nodeDeviceId);
+                // create a placeholder for the external node
+                nodeType = "placeholder";
+            }
+
+            // get the node type constructor
+            nt = typeRegistry.get(nodeType);
             if (nt) {
                 try {
                     nn = new nt(activeConfig[i]);
                 }
                 catch (err) {
-                    util.log("[red] "+activeConfig[i].type+" : "+err);
+                    util.log("[red] "+nodeType+" : "+err);
                 }
             }
             // console.log(nn);
             if (nn === null) {
-                util.log("[red] unknown type: "+activeConfig[i].type);
+                util.log("[red] unknown type: "+nodeType);
             }
         }
     }
+
+    util.log('[red] analyzing all flows for distributed nodes')
+    for (nId in nodes) {
+        var n = nodes[nId];
+        util.log("[red] node id: "+nId+" type:"+n.type);
+        if (n.type != "placeholder") {
+            continue;
+        }
+
+        // assume a placeholder node can be deleted unless: 
+        // a - its connected to another node
+        // b - an incoming or outgoing connection is on another device
+
+        // first check the external device's node outgoing wires to see if it is connected to a node we are hosting.
+        // if so, we'll need to replace this node with an incoming MQTT node
+        util.log("[red] checking "+n.wires.length+" wires of: "+nId+" type:"+n.type);
+
+        for (i=0; i<n.wires.length; i++) {
+            var outWires = n.wires[i];
+            for (j=0; j<outWires.length; j++) {
+                var targetId = outWires[j];                
+                util.log("[red] checking wire: "+i+" id:"+targetId);
+
+                var targetDeviceId = nodes[targetId].deviceId || settings.deviceId;
+
+                if (targetDeviceId != n.deviceId) {
+                    // replace node with incoming MQTT node
+                    var nt = typeRegistry.get("wire in");
+                    if (nt) {
+                        try {
+                            nn = new nt({"id":n.id, "deviceId":n.deviceId, "wires":n.wires});
+                            nodes[nId] = nn;
+                        }
+                        catch (err) {
+                            util.log("[red] creating input wire: "+err);
+                        }
+                    }
+                    return;
+                }             
+            }
+        }
+
+        // we haven't returned yet, so now check to see if we need an outgoing node
+
+        // check all nodes to see if they have a wire connected to this placeholder
+        // from an external device.  If so, we cannot delete it and need a wire
+        for (srcId in nodes) {
+            srcN = nodes[srcId];
+            // skip the target
+            if (srcN.id == n.id) continue;
+            // source and destination on same id, so we can delete it
+            var srcDeviceId = srcN.deviceId || settings.deviceId;
+            if (srcDeviceId == n.deviceId) continue;
+            debugger;
+
+            // devices are different, check if connected
+            for (var i=0; i<srcN.wires.length; i++) {
+                // replace node with outgoing MQTT node (to the device)
+                var nt = typeRegistry.get("wire out");
+                if (nt) {
+                    try {
+                        nn = new nt({"id":n.id, "deviceId":n.deviceId, "wires":n.wires});
+                        nodes[nId] = nn;
+                    }
+                    catch (err) {
+                        util.log("[red] creating output wire: "+err);
+                    }
+                }
+                return;
+            }
+        }
+    
+        // we're not connected so delete the node - its an internal node, or not connected to anything.
+        if (deleteNode) {
+            util.log("deleting inner node: "+nId);
+            delete nodes[nId];
+        }
+    }
+
     // Clean up any orphaned credentials
     credentials.clean(flowNodes.get);
     events.emit("nodes-started");
@@ -108,8 +204,9 @@ function stopFlows() {
 }
 
 var flowNodes = module.exports = {
-    init: function(_storage) {
+    init: function(_storage, _settings) {
         storage = _storage;
+        settings = _settings;
     },
     
     /**
@@ -158,6 +255,7 @@ var flowNodes = module.exports = {
             for (var n in nodes) {
                 if (nodes.hasOwnProperty(n)) {
                     try {
+                        util.log("stopping node:"+nodes[n].id);
                         var p = nodes[n].close();
                         if (p) {
                             promises.push(p);
