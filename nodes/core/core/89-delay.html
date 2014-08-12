@@ -70,6 +70,10 @@
         <input type="text" id="node-input-name" placeholder="Name">
     </div>
 
+    <div class="form-row">
+        <label for="node-input-deviceId"><i class="icon-tag"></i> Device ID</label>
+        <input type="text" id="node-input-deviceId" placeholder="Device ID">
+    </div>
 </script>
 
 <!-- Next, some simple help text is provided for the node.                   -->
@@ -85,6 +89,7 @@
         color:"#E6E0F8",
         defaults: {             // defines the editable properties of the node
             name: {value:""},   //  along with default values.
+            deviceId: {value:"server"},
             pauseType: {value:"delay", required:true},
             timeout: {value:"5", required:true, validate:RED.validators.number()},
             timeoutUnits: {value:"seconds"},

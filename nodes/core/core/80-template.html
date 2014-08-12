@@ -28,6 +28,10 @@
         <label for="node-input-field"><i class="fa fa-edit"></i> Property</label>
         msg.<input type="text" id="node-input-field" placeholder="payload" style="width: 64%;">
     </div>
+    <div class="form-row">
+        <label for="node-input-deviceId"><i class="fa fa-tag"></i> Device ID</label>
+        <input type="text" id="node-input-deviceId" placeholder="Device ID">
+    </div>
 </script>
 
 <script type="text/x-red" data-help-name="template">
@@ -51,6 +55,7 @@
         category: 'function',
         defaults: {
             name: {value:""},
+            deviceId: {value:"server"},
             field: {value:"payload"},
             template: {value:"This is the payload: {{payload}}!"},
         },
@@ -58,7 +63,10 @@
         outputs:1,
         icon: "template.png",
         label: function() {
-            return this.name;
+            if (this.deviceId != "server")
+                return this.name+" on "+this.deviceId;
+            else 
+                return this.name;
         },
         oneditprepare: function() {
 

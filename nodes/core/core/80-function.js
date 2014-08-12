@@ -24,6 +24,7 @@ module.exports = function(RED) {
     function FunctionNode(n) {
         RED.nodes.createNode(this,n);
         this.name = n.name;
+        this.deviceId = n.deviceId;
         this.func = n.func;
         var functionText = "var results = (function(msg){"+this.func+"\n})(msg);";
         this.topic = n.topic;

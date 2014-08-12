@@ -19,6 +19,10 @@
         <label for="node-input-name"><i class="fa fa-tag"></i> Name</label>
         <input type="text" id="node-input-name" placeholder="Name">
     </div>
+    <div class="form-row">
+        <label for="node-input-device"><i class="fa fa-tag"></i> Device</label>
+        <input type="text" id="node-input-device" placeholder="Device">
+    </div>
 </script>
 
 <script type="text/x-red" data-help-name="sentiment">
@@ -35,6 +39,7 @@
         color:"#E6E0F8",
         defaults: {
             name: {value:""},
+            device: {value:"server"}
         },
         inputs:1,
         outputs:1,
