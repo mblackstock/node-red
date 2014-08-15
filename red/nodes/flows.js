@@ -42,6 +42,138 @@ events.on('type-registered',function(type) {
         }
 });
 
+
+function analyzeDistributedFlow(nodes) {
+    'use strict';
+    var replaced = false;
+    var nId;        // current node id
+    var n, nt, nn;  // current node, node type, new node
+    var outWires;   // outgoing wires from the current node
+    var targetId;   // id of outgoing wire
+    var srcDeviceId, targetDeviceId; // deviceId of outgoing wire
+    var i,j;        // loop counters
+    var srcId;      // id of source node
+    var srcN;       // source node
+    var wireInList = [];
+    var wireOutList = [];
+    var deleteList = [];
+
+    var newNodes;   // new nodes that need to be added
+
+    util.log('[dist] analyzing all flows for distributed nodes')
+    for (nId in nodes) {
+        replaced = false;
+
+        n = nodes[nId];        
+        if (n.type != "placeholder") continue;
+
+        // assume a placeholder node can be deleted unless: 
+        // a - its connected to another node
+        // b - an incoming or outgoing connection is on another device
+
+        // first check the external device's node outgoing wires to see if it is connected to a node we are hosting.
+        // if so, we'll need to replace this node with an incoming MQTT node
+        util.log("[dist] checking outgoing wires of: "+nId);
+
+        for (i=0; i<n.wires.length; i++) {
+            outWires = n.wires[i];
+            for (j=0; j<outWires.length; j++) {
+                targetId = outWires[j];                
+                util.log("[dist] checking wire: "+i+" to node:"+targetId);
+
+                targetDeviceId = nodes[targetId].deviceId || settings.deviceId;
+
+                util.log("[dist] node id:"+n.deviceId+" target device id:"+targetDeviceId);
+
+                // same device, we don't replace it
+                if (targetDeviceId == n.deviceId)  continue;
+
+                // replace node with incoming MQTT node
+                nt = typeRegistry.get("wire in");
+                try {
+                    util.log("[dist] add "+nId +" to wire in list");
+                    wireInList.push(nId);
+                }
+                catch (err) {
+                    util.log("[dist] error creating input wire: "+err);
+                }
+                replaced = true;         
+            }
+        }
+
+        if (replaced)
+            continue;   // get the next placeholder node
+
+        // so check all nodes to see if they have a wire connected to this placeholder
+        // from an external device.  If so, we cannot delete it and need a wire
+        util.log("[dist] checking for wires into "+nId)
+        for (srcId in nodes) {
+            srcN = nodes[srcId];
+            if (srcN.id == n.id) continue;
+            if (srcN.wires.length == 0) continue;
+
+            // source and destination on same id, so we can delete it
+            srcDeviceId = srcN.deviceId || settings.deviceId;
+            if (srcDeviceId == n.deviceId) continue;
+
+            util.log("[dist] src "+srcN.id );
+
+            // devices are different, check if src connected to placeholder
+            for (i=0; i<srcN.wires.length; i++) {
+                outWires = srcN.wires[i];
+                for (j=0; j<outWires.length; j++) {
+                    targetId = outWires[j];      
+                    if (targetId != n.id) continue;
+
+                    util.log("[dist] src "+srcN.id+' is connected to '+n.id);
+                    // replace node with outgoing MQTT node (to the device)
+                    nt = typeRegistry.get("wire out");
+                    try {
+                        util.log("[dist] add "+nId +" to wire out list");
+                        wireOutList.push(nId);
+                    }
+                    catch (err) {
+                        util.log("[dist] creating output wire: "+err);
+                    }
+                    replaced = true;
+                }
+            }
+        }
+    
+        // we're not connected so delete the node - its an internal node, or not connected to anything.
+        if (!replaced) {
+            util.log("[dist] deleting inner node: "+nId);
+            deleteList.push(nId);
+        }
+    }
+
+    // now update the nodes, first deleting
+    for (i=0; i<deleteList.length; i++) {
+        nId = deleteList[i];
+        util.log('[dist] deleting node '+nId);
+        delete nodes[nId];
+    }
+    nt = typeRegistry.get("wire out");
+    for (i=0; i<wireOutList.length; i++) {
+        nId = wireOutList[i];
+
+        n = nodes[nId];        
+        util.log('[dist] replacing node '+nId+' with wire out node');
+
+        nn = new nt({"[dist] id":n.id, "deviceId":n.deviceId, "wires":n.wires});
+        nodes[nId] = nn;
+    }
+    nt = typeRegistry.get("wire in");
+    for (i=0; i<wireInList.length; i++) {
+        nId = wireInList[i];
+        n = nodes[nId];        
+        util.log('[dist] replacing node '+nId+' with wire in node');
+
+        nn = new nt({"[dist] id":n.id, "deviceId":n.deviceId, "wires":n.wires});
+        nodes[nId] = nn;
+    }
+}
+
 /**
  * Parses the current activeConfig and creates the required node instances
  */ 
@@ -84,11 +216,11 @@ function parseConfig() {
             var nodeDeviceId = activeConfig[i].deviceId || settings.deviceId;
             var nodeType = activeConfig[i].type;
 
-            util.log("creating node "+activeConfig[i].id+":"+activeConfig[i].name);
+            util.log("creating node "+activeConfig[i].id+":"+activeConfig[i].name+':'+nodeDeviceId);
 
             // create a placeholder node if the node is on another device
             if (nodeDeviceId != settings.deviceId) {
-                util.log("adding placeholder node for "+activeConfig[i].id+" on device "+nodeDeviceId);
+                util.log("[dist] adding placeholder node for "+activeConfig[i].id+" on device "+nodeDeviceId);
                 // create a placeholder for the external node
                 nodeType = "placeholder";
             }
@@ -110,83 +242,7 @@ function parseConfig() {
         }
     }
 
-    util.log('[red] analyzing all flows for distributed nodes')
-    for (nId in nodes) {
-        var n = nodes[nId];
-        util.log("[red] node id: "+nId+" type:"+n.type);
-        if (n.type != "placeholder") {
-            continue;
-        }
-
-        // assume a placeholder node can be deleted unless: 
-        // a - its connected to another node
-        // b - an incoming or outgoing connection is on another device
-
-        // first check the external device's node outgoing wires to see if it is connected to a node we are hosting.
-        // if so, we'll need to replace this node with an incoming MQTT node
-        util.log("[red] checking "+n.wires.length+" wires of: "+nId+" type:"+n.type);
-
-        for (i=0; i<n.wires.length; i++) {
-            var outWires = n.wires[i];
-            for (j=0; j<outWires.length; j++) {
-                var targetId = outWires[j];                
-                util.log("[red] checking wire: "+i+" id:"+targetId);
-
-                var targetDeviceId = nodes[targetId].deviceId || settings.deviceId;
-
-                if (targetDeviceId != n.deviceId) {
-                    // replace node with incoming MQTT node
-                    var nt = typeRegistry.get("wire in");
-                    if (nt) {
-                        try {
-                            nn = new nt({"id":n.id, "deviceId":n.deviceId, "wires":n.wires});
-                            nodes[nId] = nn;
-                        }
-                        catch (err) {
-                            util.log("[red] creating input wire: "+err);
-                        }
-                    }
-                    return;
-                }             
-            }
-        }
-
-        // we haven't returned yet, so now check to see if we need an outgoing node
-
-        // check all nodes to see if they have a wire connected to this placeholder
-        // from an external device.  If so, we cannot delete it and need a wire
-        for (srcId in nodes) {
-            srcN = nodes[srcId];
-            // skip the target
-            if (srcN.id == n.id) continue;
-            // source and destination on same id, so we can delete it
-            var srcDeviceId = srcN.deviceId || settings.deviceId;
-            if (srcDeviceId == n.deviceId) continue;
-            debugger;
-
-            // devices are different, check if connected
-            for (var i=0; i<srcN.wires.length; i++) {
-                // replace node with outgoing MQTT node (to the device)
-                var nt = typeRegistry.get("wire out");
-                if (nt) {
-                    try {
-                        nn = new nt({"id":n.id, "deviceId":n.deviceId, "wires":n.wires});
-                        nodes[nId] = nn;
-                    }
-                    catch (err) {
-                        util.log("[red] creating output wire: "+err);
-                    }
-                }
-                return;
-            }
-        }
-    
-        // we're not connected so delete the node - its an internal node, or not connected to anything.
-        if (deleteNode) {
-            util.log("deleting inner node: "+nId);
-            delete nodes[nId];
-        }
-    }
+    analyzeDistributedFlow(nodes);
 
     // Clean up any orphaned credentials
     credentials.clean(flowNodes.get);

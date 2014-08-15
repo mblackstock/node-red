@@ -14,38 +14,28 @@
  * limitations under the License.
  **/
 
-/**
- * PlaceholderNode acts as a placeholder for distributed nodes until we determine which ones
- * we need to replace with MQTT nodes (edge) or drop (inner).
- **/
-module.exports = function(RED) {
-    "use strict";
-    function WireNode(n) {
-        RED.nodes.createNode(this,n);
-        this.oldType = this.type;
-        this.type = "placeholder";
-    }
-    RED.nodes.registerType("wire",WireNode);
-}
+var util = require("util");
 
 module.exports = function(RED) {
     "use strict";
-
     // we hard code the broker used for device distribution.  Could move this to settings
     
     var MQTT_PREFIX = "wire/";
+
     var MQTT_BROKER_CONFIG = {
-            "broker":"localhost";
-            "port":1883;
-            "clientid":"";
-            "username":"user";
-            "password":"password";
+            "broker":"ec2-54-215-77-225.us-west-1.compute.amazonaws.com",
+            "port":1883,
+            "clientid":"",
+            "username":"",
+            "password":""
         };
 
-    var connectionPool = require("./lib/mqttConnectionPool");
+    var connectionPool = require("../core/io/lib/mqttConnectionPool");
 
     function WireInNode(n) {
         RED.nodes.createNode(this,n);
+        util.log('WireInNode created');
+
         this.topic = MQTT_PREFIX+n.id;  // wire/{id}
         this.broker = MQTT_BROKER_CONFIG.broker;
         this.brokerConfig = MQTT_BROKER_CONFIG;
@@ -81,6 +71,7 @@ module.exports = function(RED) {
 
     function WireOutNode(n) {
         RED.nodes.createNode(this,n);
+        util.log('WireOutNode created');
 
         this.topic = MQTT_PREFIX+n.id;  // wire/{id}
         this.broker = MQTT_BROKER_CONFIG.broker;
@@ -115,4 +106,5 @@ module.exports = function(RED) {
         });
     }
     RED.nodes.registerType("wire out",WireOutNode);
+
 }

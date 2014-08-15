@@ -28,6 +28,7 @@ module.exports = function(RED) {
         var node = this;
         this.interval_id = null;
         this.cronjob = null;
+        this.deviceId = n.deviceId;
     
         if (this.repeat && !isNaN(this.repeat) && this.repeat > 0) {
             this.repeat = this.repeat * 1000;

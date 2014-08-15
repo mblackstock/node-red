@@ -25,6 +25,7 @@ module.exports = function(RED) {
         // keep track of what the type was before we replaced it.
         this.oldType = this.type;
         this.type = "placeholder";
+        this.deviceId = n.deviceId;
     }
     RED.nodes.registerType("placeholder",PlaceholderNode);
 }

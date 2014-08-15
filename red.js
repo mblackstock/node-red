@@ -179,6 +179,8 @@ RED.start().then(function() {
             if (settings.httpAdminRoot === false) {
                 util.log('[red] Admin UI disabled');
             }
+            util.log('[red] running as deviceId ['+settings.deviceId+']');
+
             util.log('[red] Server now running at '+getListenPath());
         });
     } else {
