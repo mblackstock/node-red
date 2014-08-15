@@ -57,8 +57,7 @@ function analyzeDistributedFlow(nodes) {
     var wireInList = [];
     var wireOutList = [];
     var deleteList = [];
-
-    var newNodes;   // new nodes that need to be added
+    var topic;      // topic for in or out node
 
     util.log('[dist] analyzing all flows for distributed nodes')
     for (nId in nodes) {
@@ -78,7 +77,8 @@ function analyzeDistributedFlow(nodes) {
         for (i=0; i<n.wires.length; i++) {
             outWires = n.wires[i];
             for (j=0; j<outWires.length; j++) {
-                targetId = outWires[j];                
+                targetId = outWires[j];
+
                 util.log("[dist] checking wire: "+i+" to node:"+targetId);
 
                 targetDeviceId = nodes[targetId].deviceId || settings.deviceId;
@@ -92,7 +92,7 @@ function analyzeDistributedFlow(nodes) {
                 nt = typeRegistry.get("wire in");
                 try {
                     util.log("[dist] add "+nId +" to wire in list");
-                    wireInList.push(nId);
+                    wireInList.push({"node":nId, "topic":n.id+"-"+i+"-"+targetId});
                 }
                 catch (err) {
                     util.log("[dist] error creating input wire: "+err);
@@ -130,7 +130,7 @@ function analyzeDistributedFlow(nodes) {
                     nt = typeRegistry.get("wire out");
                     try {
                         util.log("[dist] add "+nId +" to wire out list");
-                        wireOutList.push(nId);
+                        wireOutList.push({"node":nId, "topic":srcId+"-"+i+"-"+nId});
                     }
                     catch (err) {
                         util.log("[dist] creating output wire: "+err);
@@ -155,21 +155,25 @@ function analyzeDistributedFlow(nodes) {
     }
     nt = typeRegistry.get("wire out");
     for (i=0; i<wireOutList.length; i++) {
-        nId = wireOutList[i];
+        nId = wireOutList[i].node;
+        topic = wireOutList[i].topic;
 
         n = nodes[nId];        
-        util.log('[dist] replacing node '+nId+' with wire out node');
+        util.log('[dist] replacing node '+nId+' with wire out node on topic '+topic);
 
-        nn = new nt({"[dist] id":n.id, "deviceId":n.deviceId, "wires":n.wires});
+        nn = new nt({"id":n.id, "topic":topic, "deviceId":n.deviceId, "wires":n.wires});
         nodes[nId] = nn;
     }
+
     nt = typeRegistry.get("wire in");
     for (i=0; i<wireInList.length; i++) {
-        nId = wireInList[i];
-        n = nodes[nId];        
-        util.log('[dist] replacing node '+nId+' with wire in node');
+        nId = wireInList[i].node;
+        topic = wireInList[i].topic;
 
-        nn = new nt({"[dist] id":n.id, "deviceId":n.deviceId, "wires":n.wires});
+        n = nodes[nId];        
+        util.log('[dist] replacing node '+nId+' with wire in node on topic '+topic);
+
+        nn = new nt({"id":n.id, "topic":topic, "deviceId":n.deviceId, "wires":n.wires});
         nodes[nId] = nn;
     }
 }

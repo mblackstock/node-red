@@ -34,11 +34,11 @@ module.exports = function(RED) {
 
     function WireInNode(n) {
         RED.nodes.createNode(this,n);
-        util.log('WireInNode created');
 
-        this.topic = MQTT_PREFIX+n.id;  // wire/{id}
+        this.topic = MQTT_PREFIX+n.topic;  // wire/{id}-{output}-{id}
         this.broker = MQTT_BROKER_CONFIG.broker;
         this.brokerConfig = MQTT_BROKER_CONFIG;
+        util.log('WireInNode created. topic:'+this.topic);
 
         if (this.brokerConfig) {
             this.status({fill:"red",shape:"ring",text:"disconnected"});
@@ -71,11 +71,11 @@ module.exports = function(RED) {
 
     function WireOutNode(n) {
         RED.nodes.createNode(this,n);
-        util.log('WireOutNode created');
 
-        this.topic = MQTT_PREFIX+n.id;  // wire/{id}
+        this.topic = MQTT_PREFIX+n.topic;  // wire/{id}
         this.broker = MQTT_BROKER_CONFIG.broker;
         this.brokerConfig = MQTT_BROKER_CONFIG;
+        util.log('WireOutNode created. topic:'+this.topic);
 
         if (this.brokerConfig) {
             this.status({fill:"red",shape:"ring",text:"disconnected"},true);

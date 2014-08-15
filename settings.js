@@ -16,7 +16,7 @@
 module.exports = {
 
     // this is the id of the local device for distributed flows
-    deviceId: "server",
+    deviceId: "mac",
 
     // the tcp port that the Node-RED web server is listening on
     uiPort: 1880,
