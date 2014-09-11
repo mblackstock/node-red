@@ -200,10 +200,14 @@ RED.nodes = (function() {
                 }
             }
         }
+        
+        node.x = n.x;
+        node.y = n.y;
+        node.z = n.z;
+        node.width = n.width;
+        node.height = n.height;
+
         if (n._def.category != "config") {
-            node.x = n.x;
-            node.y = n.y;
-            node.z = n.z;
             node.wires = [];
             for(var i=0;i<n.outputs;i++) {
                 node.wires.push([]);
