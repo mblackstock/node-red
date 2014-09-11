@@ -272,11 +272,11 @@ describe('NodeRegistry', function() {
             var nodeConfigs = typeRegistry.getNodeConfigs();
             
             // TODO: this is brittle...
-            nodeConfigs.should.equal("<script type=\"text/x-red\" data-template-name=\"test-node-1\"></script><script type=\"text/x-red\" data-help-name=\"test-node-1\"></script><style></style><script type=\"text/x-red\" data-template-name=\"test-node-2\"></script><script type=\"text/x-red\" data-help-name=\"test-node-2\"></script><style></style><script type=\"text/javascript\">RED.nodes.registerType(\"test-node-1\",{}),RED.nodes.registerType(\"test-node-2\",{});</script>");
+            nodeConfigs.should.equal("<script type=\"text/x-red\" data-template-name=\"test-node-1\"></script>\n<script type=\"text/x-red\" data-help-name=\"test-node-1\"></script>\n<script type=\"text/javascript\">RED.nodes.registerType('test-node-1',{});</script>\n<style></style>\n<p>this should be filtered out</p>\n<script type=\"text/x-red\" data-template-name=\"test-node-2\"></script>\n<script type=\"text/x-red\" data-help-name=\"test-node-2\"></script>\n<script type=\"text/javascript\">RED.nodes.registerType('test-node-2',{});</script>\n<style></style>\n");
             
             var nodeId = list[0].id;
             var nodeConfig = typeRegistry.getNodeConfig(nodeId);
-            nodeConfig.should.equal("<script type=\"text/x-red\" data-template-name=\"test-node-1\"></script><script type=\"text/x-red\" data-help-name=\"test-node-1\"></script><style></style><script type=\"text/javascript\">RED.nodes.registerType('test-node-1',{});</script>");
+            nodeConfig.should.equal("<script type=\"text/x-red\" data-template-name=\"test-node-1\"></script>\n<script type=\"text/x-red\" data-help-name=\"test-node-1\"></script>\n<script type=\"text/javascript\">RED.nodes.registerType('test-node-1',{});</script>\n<style></style>\n<p>this should be filtered out</p>\n<script type=\"text/javascript\"></script>");
             done();
         }).catch(function(e) {
             done(e);
@@ -310,6 +310,22 @@ describe('NodeRegistry', function() {
         });
     });
     
+    it('fails to add non-existent filename', function(done) {
+        typeRegistry.init({});
+        typeRegistry.load("wontexist",true).then(function(){
+            var list = typeRegistry.getNodeList();
+            list.should.be.an.Array.and.be.empty;
+            typeRegistry.addNode({file: resourcesDir + "DoesNotExist/DoesNotExist.js"}).then(function(node) {
+                done(new Error("ENOENT not thrown"));
+            }).otherwise(function(e) {
+                e.code.should.eql("ENOENT");
+                done();
+            });
+            
+        }).catch(function(e) {
+            done(e);
+        });
+    });
     
     it('returns node info by type or id', function(done) {
         typeRegistry.init({});
@@ -384,7 +400,24 @@ describe('NodeRegistry', function() {
         }).catch(function(e) {
             done(e);
         });
+    });
+    
+    it('rejects removing unknown nodes from the registry', function(done) {
+        typeRegistry.init({});
+        typeRegistry.load("wontexist",true).then(function() {
+            var list = typeRegistry.getNodeList();
+            list.should.be.an.Array.and.be.empty;
+
             
+            /*jshint immed: false */
+            (function() {
+                typeRegistry.removeNode("1234");
+            }).should.throw();
+
+            done();
+        }).catch(function(e) {
+            done(e);
+        });
     });
     
     it('scans the node_modules path for node files', function(done) {
@@ -484,7 +517,6 @@ describe('NodeRegistry', function() {
             });
         })();
             
-            
         typeRegistry.init({});
         typeRegistry.load("wontexist",true).then(function(){
             var list = typeRegistry.getNodeList();
@@ -517,6 +549,24 @@ describe('NodeRegistry', function() {
         }).finally(function() {
             readdirSync.restore();
             pathJoin.restore();
+        });
+    });
+    
+    it('fails to add non-existent module name', function(done) {
+        typeRegistry.init({});
+        typeRegistry.load("wontexist",true).then(function(){
+            var list = typeRegistry.getNodeList();
+            list.should.be.an.Array.and.be.empty;
+            
+            typeRegistry.addNode({module: "DoesNotExistModule"}).then(function(node) {
+                done(new Error("ENOENT not thrown"));
+            }).otherwise(function(e) {
+                e.code.should.eql("MODULE_NOT_FOUND");
+                done();
+            });
+            
+        }).catch(function(e) {
+            done(e);
         });
     });
     

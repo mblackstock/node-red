@@ -15,7 +15,7 @@
  **/
 
 RED.touch = RED.touch||{};
-RED.touch.radialMenu = function() {
+RED.touch.radialMenu = (function() {
     
     
     var touchMenu = null;
@@ -60,7 +60,7 @@ RED.touch.radialMenu = function() {
                 });
                 
             var menuOpts = [];
-            function createMenuOpt(x,y,opt) {
+            var createMenuOpt = function(x,y,opt) {
                 opt.el = menu.append("div")
                     .style({
                         position: "absolute",
@@ -74,11 +74,9 @@ RED.touch.radialMenu = function() {
                         "text-align": "center",
                         "line-height":"50px"
                     });
-                if (opt.icon) {
-                    opt.el.append("i").attr("class","icon "+opt.icon)
-                } else {
-                    opt.el.html(opt.name);
-                }
+                    
+                opt.el.html(opt.name);
+                
                 if (opt.disabled) {
                     opt.el.style({"border-color":"#ccc",color:"#ccc"});
                 }
@@ -112,7 +110,7 @@ RED.touch.radialMenu = function() {
             }
             
 
-            function hide() {
+            var hide = function() {
                 isActive = false;
                 activeOption = null;
                 touchMenu.remove();
@@ -182,5 +180,5 @@ RED.touch.radialMenu = function() {
         }
     }
 
-}();
+})();
 

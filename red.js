@@ -180,7 +180,7 @@ RED.start().then(function() {
                 util.log('[red] Admin UI disabled');
             }
             util.log('[red] running as deviceId ['+settings.deviceId+']');
-
+            process.title = 'node-red';
             util.log('[red] Server now running at '+getListenPath());
         });
     } else {

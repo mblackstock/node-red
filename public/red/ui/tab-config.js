@@ -13,7 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  **/
-RED.sidebar.config = function() {
+RED.sidebar.config = (function() {
     
     var content = document.createElement("div");
     content.id = "tab-config";
@@ -23,19 +23,19 @@ RED.sidebar.config = function() {
     
     var list = $("<ul>",{class:"tab-config-list"}).appendTo(content);
     
-    $("#btn-config-nodes").click(function(){
+    function show() {
         if (!RED.sidebar.containsTab("config")) {
             RED.sidebar.addTab("config",content,true);
         }
         refresh();
         RED.sidebar.show("config");
-    });
+    }
     
     function refresh() {
         list.empty();
         RED.nodes.eachConfig(function(node) {
             var li = list.find("#tab-config-list-type-"+node.type);
-            if (li.length == 0) {
+            if (li.length === 0) {
                 li = $("<li>",{id:"tab-config-list-type-"+node.type}).appendTo(list);
                 $('<div class="tab-config-list-type">'+node.type+'</div>').appendTo(li);
             }
@@ -78,6 +78,7 @@ RED.sidebar.config = function() {
         });
     }
     return {
+        show:show,
         refresh:refresh
     }
-}();
+})();

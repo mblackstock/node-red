@@ -13,9 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  **/
-var RED = function() {
-
-    $('#btn-keyboard-shortcuts').click(function(){showHelp();});
+var RED = (function() {
 
     function hideDropTarget() {
         $("#dropTarget").hide();
@@ -44,9 +42,9 @@ var RED = function() {
         event.preventDefault();
     });
 
-
     function save(force) {
         if (RED.view.dirty()) {
+            //$("#debug-tab-clear").click();  // uncomment this to auto clear debug on deploy
 
             if (!force) {
                 var invalid = false;
@@ -75,11 +73,11 @@ var RED = function() {
                 }
             }
             var nns = RED.nodes.createCompleteNodeSet();
-            
-            $("#btn-icn-deploy").removeClass('icon-upload');
+
+            $("#btn-icn-deploy").removeClass('fa-download');
             $("#btn-icn-deploy").addClass('spinner');
             RED.view.dirty(false);
-            
+
             $.ajax({
                 url:"flows",
                 type: "POST",
@@ -113,7 +111,7 @@ var RED = function() {
                 }
             }).always(function() {
                 $("#btn-icn-deploy").removeClass('spinner');
-                $("#btn-icn-deploy").addClass('icon-upload');
+                $("#btn-icn-deploy").addClass('fa-download');
             });
         }
     }
@@ -150,6 +148,7 @@ var RED = function() {
             loadNodes();
         });
     }
+
     function loadNodes() {
         $.get('nodes', function(data) {
             $("body").append(data);
@@ -176,18 +175,37 @@ var RED = function() {
                     }
                 }
             });
+            RED.comms.subscribe("node/#",function(topic,msg) {
+                var i;
+                if (topic == "node/added") {
+                    for (i=0;i<msg.length;i++) {
+                        var m = msg[i];
+                        var id = m.id;
+                        $.get('nodes/'+id, function(data) {
+                            $("body").append(data);
+                            var typeList = "<ul><li>"+m.types.join("</li><li>")+"</li></ul>";
+                            RED.notify("Node"+(m.types.length!=1 ? "s":"")+" added to palette:"+typeList,"success");
+                        });
+                    }
+                } else if (topic == "node/removed") {
+                    if (msg.types) {
+                        for (i=0;i<msg.types.length;i++) {
+                            RED.palette.remove(msg.types[i]);
+                        }
+                        var typeList = "<ul><li>"+msg.types.join("</li><li>")+"</li></ul>";
+                        RED.notify("Node"+(msg.types.length!=1 ? "s":"")+" removed from palette:"+typeList,"success");
+                    }
+                }
+            });
         });
     }
 
-    $('#btn-node-status').click(function() {toggleStatus();});
-
     var statusEnabled = false;
-    function toggleStatus() {
-        var btnStatus = $("#btn-node-status");
-        statusEnabled = btnStatus.toggleClass("active").hasClass("active");
+    function toggleStatus(state) {
+        statusEnabled = state;
         RED.view.status(statusEnabled);
     }
-    
+
     function showHelp() {
 
         var dialog = $('#node-help');
@@ -207,6 +225,35 @@ var RED = function() {
     }
 
     $(function() {
+        RED.menu.init({id:"btn-sidemenu",
+            options: [
+                {id:"btn-sidebar",icon:"fa fa-columns",label:"Sidebar",toggle:true,onselect:RED.sidebar.toggleSidebar},
+                null,
+                {id:"btn-node-status",icon:"fa fa-info",label:"Node Status",toggle:true,onselect:toggleStatus},
+                null,
+                {id:"btn-import-menu",icon:"fa fa-sign-in",label:"Import...",options:[
+                    {id:"btn-import-clipboard",icon:"fa fa-clipboard",label:"Clipboard...",onselect:RED.view.showImportNodesDialog},
+                    {id:"btn-import-library",icon:"fa fa-book",label:"Library",options:[]}
+                ]},
+                {id:"btn-export-menu",icon:"fa fa-sign-out",label:"Export...",disabled:true,options:[
+                    {id:"btn-export-clipboard",icon:"fa fa-clipboard",label:"Clipboard...",disabled:true,onselect:RED.view.showExportNodesDialog},
+                    {id:"btn-export-library",icon:"fa fa-book",label:"Library...",disabled:true,onselect:RED.view.showExportNodesLibraryDialog}
+                ]},
+                null,
+                {id:"btn-config-nodes",icon:"fa fa-th-list",label:"Configuration nodes...",onselect:RED.sidebar.config.show},
+                null,
+                {id:"btn-workspace-menu",icon:"fa fa-th-large",label:"Workspaces",options:[
+                    {id:"btn-workspace-add",icon:"fa fa-plus",label:"Add"},
+                    {id:"btn-workspace-edit",icon:"fa fa-pencil",label:"Rename"},
+                    {id:"btn-workspace-delete",icon:"fa fa-minus",label:"Delete"},
+                    null
+                ]},
+                null,
+                {id:"btn-keyboard-shortcuts",icon:"fa fa-keyboard-o",label:"Keyboard Shortcuts",onselect:showHelp},
+                {id:"btn-help",icon:"fa fa-question",label:"Help...", href:"http://nodered.org/docs"}
+            ]
+        });
+
         RED.keyboard.add(/* ? */ 191,{shift:true},function(){showHelp();d3.event.preventDefault();});
         loadSettings();
         RED.comms.connect();
@@ -214,4 +261,4 @@ var RED = function() {
 
     return {
     };
-}();
+})();

@@ -59,6 +59,63 @@ function createServer(_server,_settings) {
             res.send(400,"Invalid Flow");
         }
     );
+    
+    app.post("/nodes",
+        express.json(),
+        function(req,res) {
+            var node = req.body;
+            if (!node.file && !node.module) {
+                res.send(400,"Invalid request");
+                return;
+            }
+            redNodes.addNode(node).then(function(info) {
+                comms.publish("node/added",info,false);
+                util.log("[red] Added node types:");
+                for (var j=0;j<info.length;j++) {
+                    for (var i=0;i<info[j].types.length;i++) {
+                        util.log("[red] - "+info[j].types[i]);
+                    }
+                }
+                res.json(info);
+            }).otherwise(function(err) {
+                res.send(400,err.toString());
+            });
+        },
+        function(err,req,res,next) {
+            res.send(400,err);
+        }
+    );
+    
+    app.delete("/nodes/:id",
+        function(req,res) {
+            var id = req.params.id;
+            try {
+                var info = redNodes.removeNode(id);
+                comms.publish("node/removed",info,false);
+                util.log("[red] Removed node types:");
+                for (var i=0;i<info.types.length;i++) {
+                    util.log("[red] - "+info.types[i]);
+                }
+                res.json(info);
+            } catch(err) {
+                res.send(400,err.toString());
+            }
+        },
+        function(err,req,res,next) {
+            res.send(400,err);
+        }
+    );
+    
+    app.get("/nodes/:id", function(req,res) {
+        var id = req.params.id;
+        var config = redNodes.getNodeConfig(id);
+        if (config) {
+            res.send(config);
+        } else {
+            res.send(404);
+        }
+    });
+    
 }
 
 function start() {

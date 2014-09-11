@@ -16,11 +16,11 @@
 
 <script type="text/x-red" data-template-name="e-mail">
     <div class="form-row">
-        <label for="node-input-name"><i class="icon-envelope"></i> To</label>
+        <label for="node-input-name"><i class="fa fa-envelope"></i> To</label>
         <input type="text" id="node-input-name" placeholder="email@address.com">
     </div>
     <!-- <div class="form-row">
-        <label for="node-input-pin"><i class="icon-asterisk"></i> Service</label>
+        <label for="node-input-pin"><i class="fa fa-asterisk"></i> Service</label>
         <select type="text" id="node-input-pin" style="width: 150px;">
             <option value="-" disabled> </option>
             <option value="DynectEmail">DynectEmail</option>
@@ -45,34 +45,34 @@
          </select>
     </div> -->
     <div class="form-row">
-        <label for="node-input-server"><i class="icon-tag"></i> Server</label>
+        <label for="node-input-server"><i class="fa fa-globe"></i> Server</label>
         <input type="text" id="node-input-server" placeholder="smtp.gmail.com">
     </div>
     <div class="form-row">
-        <label for="node-input-port"><i class="icon-random"></i> Port</label>
+        <label for="node-input-port"><i class="fa fa-random"></i> Port</label>
         <input type="text" id="node-input-port" placeholder="465">
     </div>
     <div class="form-row">
-        <label for="node-config-input-userid"><i class="icon-user"></i> Userid</label>
-        <input type="text" id="node-config-input-userid">
+        <label for="node-input-userid"><i class="fa fa-user"></i> Userid</label>
+        <input type="text" id="node-input-userid">
     </div>
     <div class="form-row">
-        <label for="node-config-input-password"><i class="icon-lock"></i> Password</label>
-        <input type="password" id="node-config-input-password">
+        <label for="node-input-password"><i class="fa fa-lock"></i> Password</label>
+        <input type="password" id="node-input-password">
     </div>
     <br/>
     <div class="form-row">
-        <label for="node-input-dname"><i class="icon-tag"></i> Name</label>
+        <label for="node-input-dname"><i class="fa fa-tag"></i> Name</label>
         <input type="text" id="node-input-dname" placeholder="Name">
     </div>
-    <div class="form-tips" id="node-tip"><b>Note:</b> Using credentials from global emailkeys.js file.</div>
+    <div class="form-tips" id="node-tip"><b>Note:</b> Copied credentials from global emailkeys.js file.</div>
 </script>
 
 <script type="text/x-red" data-help-name="e-mail">
     <p>Sends the <b>msg.payload</b> as an email, with a subject of <b>msg.topic</b>.</p>
-    <p>It sends the message to the configured recipient <i>only</i>.</p>
-    <p><b>msg.topic</b> is used to set the subject of the email, and <b>msg.payload</b> is the body text.</p>
-    <p>Uses the nodemailer module.</p>
+    <!-- <p>It sends the message to the configured recipient <i>only</i>.</p> -->
+    <p>You may dynamically overide the default recipient by setting a <b>msg.to</b> property.</p>
+    <!-- <p><b>msg.topic</b> is used to set the subject of the email, and <b>msg.payload</b> is the body text.</p> -->
 </script>
 
 <script type="text/javascript">
@@ -86,6 +86,12 @@
             name: {value:"",required:true},
             dname: {value:""}
         },
+        credentials: {
+            userid: {type:"text"},
+            password: {type: "password"},
+            global: { type:"boolean"}
+        },
+
         inputs:1,
         outputs:0,
         icon: "envelope.png",
@@ -97,40 +103,11 @@
             return (this.dname||!this.topic)?"node_label_italic":"";
         },
         oneditprepare: function() {
-            $.getJSON('email/'+this.id,function(data) {
-                if (data.userid) {
-                    $('#node-config-input-userid').val(data.userid);
-                }
-                if (data.hasPassword) {
-                    $('#node-config-input-password').val('__PWRD__');
-                } else {
-                    $('#node-config-input-password').val('');
-                }
-                if (data.global) $('#node-tip').show();
-                else $('#node-tip').hide();
-            });
-        },
-        oneditsave: function() {
-            var credentials = {};
-            var newUser = $('#node-config-input-userid').val();
-            var newPass = $('#node-config-input-password').val();
-            credentials.userid = newUser;
-            if (newPass != '__PWRD__') {
-                credentials.password = newPass;
-            }
-            $.ajax({
-                url: 'email/'+this.id,
-                type: 'POST',
-                data: credentials,
-                success: function(result){}
-            });
-        },
-        ondelete: function() {
-            $.ajax({
-                url: 'email/'+this.id,
-                type: 'DELETE',
-                success: function(result) {}
-            });
+            if (this.credentials.global) {
+                $('#node-tip').show();
+            } else {
+                $('#node-tip').hide();
+            };
         }
     });
 })();
@@ -139,31 +116,31 @@
 
 <script type="text/x-red" data-template-name="e-mail in">
     <div class="form-row node-input-repeat">
-        <label for="node-input-repeat"><i class="icon-repeat"></i> Check Repeat (S)</label>
+        <label for="node-input-repeat"><i class="fa fa-repeat"></i> Check Repeat (S)</label>
         <input type="text" id="node-input-repeat" placeholder="300">
     </div>
     <div class="form-row">
-        <label for="node-input-server"><i class="icon-tag"></i> Server</label>
+        <label for="node-input-server"><i class="fa fa-globe"></i> Server</label>
         <input type="text" id="node-input-server" placeholder="imap.gmail.com">
     </div>
     <div class="form-row">
-        <label for="node-input-port"><i class="icon-random"></i> Port</label>
+        <label for="node-input-port"><i class="fa fa-random"></i> Port</label>
         <input type="text" id="node-input-port" placeholder="993">
     </div>
     <div class="form-row">
-        <label for="node-config-input-userid"><i class="icon-user"></i> Userid</label>
-        <input type="text" id="node-config-input-userid">
+        <label for="node-input-userid"><i class="fa fa-user"></i> Userid</label>
+        <input type="text" id="node-input-userid">
     </div>
     <div class="form-row">
-        <label for="node-config-input-password"><i class="icon-lock"></i> Password</label>
-        <input type="password" id="node-config-input-password">
+        <label for="node-config-input-password"><i class="fa fa-lock"></i> Password</label>
+        <input type="password" id="node-input-password">
     </div>
     <br/>
     <div class="form-row">
-        <label for="node-input-name"><i class="icon-tag"></i> Name</label>
+        <label for="node-input-name"><i class="fa fa-tag"></i> Name</label>
         <input type="text" id="node-input-name" placeholder="Name">
     </div>
-    <div class="form-tips" id="node-tip"><b>Note:</b> Using credentials from global emailkeys.js file.</div>
+    <div class="form-tips" id="node-tip"><b>Note:</b> Copied credentials from global emailkeys.js file.</div>
     <div id="node-input-tip" class="form-tips">Tip: <b>ONLY</b> retrieves the single most recent email.</div>
 </script>
 
@@ -186,6 +163,11 @@
             port: {value:"993",required:true},
             name: {value:""}
         },
+        credentials: {
+            userid: {type:"text"},
+            password: {type: "password"},
+            global: { type:"boolean"}
+        },
         inputs:0,
         outputs:1,
         icon: "envelope.png",
@@ -196,40 +178,11 @@
             return (this.name||!this.topic)?"node_label_italic":"";
         },
         oneditprepare: function() {
-            $.getJSON('email/'+this.id,function(data) {
-                if (data.userid) {
-                    $('#node-config-input-userid').val(data.userid);
-                }
-                if (data.hasPassword) {
-                    $('#node-config-input-password').val('__PWRD__');
-                } else {
-                    $('#node-config-input-password').val('');
-                }
-                if (data.global) $('#node-tip').show();
-                else $('#node-tip').hide();
-            });
-        },
-        oneditsave: function() {
-            var credentials = {};
-            var newUser = $('#node-config-input-userid').val();
-            var newPass = $('#node-config-input-password').val();
-            credentials.userid = newUser;
-            if (newPass != '__PWRD__') {
-                credentials.password = newPass;
-            }
-            $.ajax({
-                url: 'email/'+this.id,
-                type: 'POST',
-                data: credentials,
-                success: function(result){}
-            });
-        },
-        ondelete: function() {
-            $.ajax({
-                url: 'email/'+this.id,
-                type: 'DELETE',
-                success: function(result) {}
-            });
+            if (this.credentials.global) {
+                $('#node-tip').show();
+            } else {
+                $('#node-tip').hide();
+            };
         }
     });
 })();
