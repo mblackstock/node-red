@@ -22,5 +22,6 @@ RED.state = {
     EDITING: 5,
     EXPORT: 6,
     IMPORT: 7,
-    IMPORT_DRAGGING: 8
+    IMPORT_DRAGGING: 8,
+    DEVICE_DRAWING: 9
 }

@@ -74,6 +74,18 @@ span.logo span {
 span.logo img {
     height: 18px;
 }
+
+#tools .button {
+    line-height: 22px;
+    display: inline-block;
+    font-size: 14px;
+    padding: 4px 12px;
+    text-decoration: none;
+    border-radius: 3px;
+    margin: auto 10px;
+    vertical-align: middle;
+}
+
 #header .button {
     line-height: 22px;
     display: inline-block;
@@ -117,8 +129,6 @@ span.logo img {
 #header .button:focus {
     outline: none;
 }
-
-
 
 #workspace {
    margin-left: 160px;
@@ -323,9 +333,13 @@ span.logo img {
     top:50px; left:0; bottom: 0; right:0;
     overflow:hidden;
 }
+#tools {
+    position: absolute;
+    top: 5px; left:10px; height: 60px; width: 140px;
+}
 #palette {
     position: absolute;
-    top: 5px; left:10px; bottom: 10px;
+    top: 70px; left:10px; bottom: 10px;
 }
 #workspace {
     position: absolute;
@@ -363,6 +377,12 @@ span.logo img {
     stroke-dasharray: 10 5;
 }
 
+.device-lasso {
+    stroke-width: 4px;
+    stroke: #0A0A0A;
+    fill: rgba(128,128,128,0.1);
+}
+
 .group-box {
     stroke-width: 1px;
     stroke: #aaaaaa;
@@ -391,7 +411,7 @@ span.logo img {
     margin-left: 20px;
 }
 
-#workspace, #palette, #sidebar {
+#workspace, #palette, #sidebar, #tools {
    border: 1px solid #000;
    border-radius: 3px;
 }
