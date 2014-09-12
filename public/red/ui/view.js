@@ -193,6 +193,14 @@ RED.view = (function() {
     // group to hold the device boxes
     var devicebox = vis.append('svg:g');
 
+    var currentDevice = "";
+
+    /**
+     * set the current device the user selected to configure nodes
+     **/
+    function setCurrentDevice(device) {
+        currentDevice = device;
+    }
     //var gridScale = d3.scale.linear().range([0,2000]).domain([0,2000]);
     //var grid = vis.append('g');
     //
@@ -329,6 +337,7 @@ RED.view = (function() {
         }
         // selecting to add nodes to a device
         if (mouse_mode === 0 || mouse_mode === RED.state.DEVICE_DRAWING) {
+
             if (lasso) {
                 lasso.remove();
                 lasso = null;
@@ -337,7 +346,17 @@ RED.view = (function() {
             if (!touchStartTime) {
                 var point = d3.mouse(this);
                 if (mouse_mode === RED.state.DEVICE_DRAWING) {
+
                     lasso = devicebox.append('rect').attr("class","device-lasso");
+
+                    // associate data with the lasso
+                    // lasso = devicebox.append('g').attr("class","device-lasso");
+                    // lasso.append('rect').attr("class","device-lasso");
+                    // lasso.append('text').datum(currentDevice)
+                    //     .text(function(d) {
+                    //         return d.label;
+                    //     });
+
                 } else {
                     lasso = vis.append('rect').attr("class","lasso");
                 }
@@ -699,6 +718,14 @@ RED.view = (function() {
     function setDeviceBox(lasso) {
 
         console.log(moving_set);
+        console.log(currentDevice.label);
+
+        // only keep boxes that surround nodes
+        if (moving_set.length == 0) {
+            lasso.remove();
+            lasso = null;
+            return;
+        }
 
         // add a 'device_box' node to the model.
         var nn = { id:(1+Math.random()*4294967295).toString(16),
@@ -716,11 +743,19 @@ RED.view = (function() {
         RED.nodes.addDeviceBox(nn);
 
         // TODO: for each node in the moving set, set the device_id to the same as the box
+        for (var i=0;i<moving_set.length;i++) {
+            var n = moving_set[i];
 
+            n.n.deviceId = currentDevice.deviceId;
+            n.n.dirty = true;
+            n.n.changed = true;
+        }
         // TODO: when deleting a device_box, set the device to the local device id?
 
         // device box added, save it
         setDirty(true);
+        RED.sidebar.info.refresh(n.n);
+        redraw();
     }
 
     /**
@@ -1718,7 +1753,8 @@ RED.view = (function() {
         showImportNodesDialog: showImportNodesDialog,
         showExportNodesDialog: showExportNodesDialog,
         showExportNodesLibraryDialog: showExportNodesLibraryDialog,
-        addDeviceBox: addDeviceBox
+        addDeviceBox: addDeviceBox,
+        setCurrentDevice: setCurrentDevice
 
     };
 })();

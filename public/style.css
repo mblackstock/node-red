@@ -337,6 +337,18 @@ span.logo img {
     position: absolute;
     top: 5px; left:10px; height: 30px; width: 140px;
 }
+#tools .button {
+    line-height: 22px;
+    display: inline-block;
+    font-size: 14px;
+    padding: 4px 12px;
+    text-decoration: none;
+    border-radius: 3px;
+    color: #000;
+    margin: auto 10px;
+    vertical-align: middle;
+}
+
 #palette {
     position: absolute;
     top: 40px; left:10px; bottom: 10px;
