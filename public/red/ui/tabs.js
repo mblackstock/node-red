@@ -17,8 +17,7 @@
 
 
 RED.tabs = (function() {
-    
-    
+     
     function createTabs(options) {
         var tabs = {};
         

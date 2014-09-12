@@ -68,7 +68,7 @@ RED.view = (function() {
         .attr("pointer-events", "all")
         .style("cursor","crosshair");
 
-     var vis = outer
+    var vis = outer
         .append('svg:g')
         .on("dblclick.zoom", null)
         .append('svg:g')
@@ -511,8 +511,10 @@ RED.view = (function() {
             updateSelection();
             if (mouse_mode == RED.state.DEVICE_DRAWING) {
                 setDevices(lasso);
+            } else {
+                lasso.remove();
             }
-            lasso.remove();
+            // creates a new one
             lasso = null;
 
         } else if (mouse_mode == RED.state.DEFAULT && mousedown_link == null && !d3.event.ctrlKey ) {
@@ -571,7 +573,7 @@ RED.view = (function() {
 
                 // generate the node id, etc.
                 var nn = { id:(1+Math.random()*4294967295).toString(16),x: mousePos[0],y:mousePos[1],w:node_width,z:activeWorkspace};
-                // TODO: add default device_id here
+                // TODO: add default deviceId for a node here
                 nn.type = selected_tool;
                 nn._def = RED.nodes.getType(nn.type);
                 nn.outputs = nn._def.outputs;
@@ -706,13 +708,18 @@ RED.view = (function() {
             deviceId:"server", // 
             x:Number(lasso.attr("x")),
             y:Number(lasso.attr("y")),
-            width:Number(lasso.attr("width")),
-            height:Number(lasso.attr("height")),
+            w:Number(lasso.attr("width")),
+            h:Number(lasso.attr("height")),
             z:activeWorkspace,
             changed:true,
             users:[]    // so that the side bar showing configs doesn't gack
         };
         nn._def = RED.nodes.getType(nn.type);
+        
+        // set the id of the lasso, so we can redraw it
+        // lasso.attr("id",nn.id);
+        // lasso.remove();
+        // vis.insert(lasso,":first-child");
 
         RED.nodes.add(nn);
 
@@ -720,7 +727,19 @@ RED.view = (function() {
 
         // TODO: when deleting a device_box, set the device to the local device id?
         setDirty(true);
-        redraw();
+    }
+
+    /**
+     * addDeviceBox
+     * adds a devicebox node to the canvas
+     **/
+    function addDeviceBox(n) {
+        var devBox = vis.append('rect')
+                    .attr("x",n.x)
+                    .attr("y",n.y)
+                    .attr("width",n.w)
+                    .attr("height",n.h)
+                    .attr("class","device-lasso");
     }
 
     function endKeyboardMove() {
@@ -1017,8 +1036,8 @@ RED.view = (function() {
                             .attr("ry", 6)
                             .attr("x",d.x)
                             .attr("y",d.y)
-                            .attr("width",d.width)
-                            .attr("height",d.height);
+                            .attr("width",d.w)
+                            .attr("height",d.h);
                     } else {
                         // drawing a node
                         var l = d._def.label;
@@ -1704,7 +1723,8 @@ RED.view = (function() {
         //TODO: should these move to an import/export module?
         showImportNodesDialog: showImportNodesDialog,
         showExportNodesDialog: showExportNodesDialog,
-        showExportNodesLibraryDialog: showExportNodesLibraryDialog
+        showExportNodesLibraryDialog: showExportNodesLibraryDialog,
+        addDeviceBox: addDeviceBox
 
     };
 })();

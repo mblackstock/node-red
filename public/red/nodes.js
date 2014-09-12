@@ -15,27 +15,39 @@
  **/
 RED.nodes = (function() {
 
-    var node_defs = {};
-    var nodes = [];
-    var configNodes = {};
-    var links = [];
+    var node_defs = {};     // map of node defs by type
+    var nodes = [];         // current list of nodes in the flow
+    var configNodes = {};   // nodes with 'config' property
+    var links = [];         // links between nodes
     var defaultWorkspace;
-    var workspaces = {};
+    var workspaces = {};    // tabs
 
+    /**
+     * register a node type adding it to the palette
+     **/
     function registerType(nt,def) {
         node_defs[nt] = def;
         // TODO: too tightly coupled into palette UI
         RED.palette.add(nt,def);
     }
 
+    /**
+     * generate a node id
+     **/
     function getID() {
         return (1+Math.random()*4294967295).toString(16);
     }
 
+    /**
+     * get the node definition given the type
+     **/
     function getType(type) {
         return node_defs[type];
     }
 
+    /**
+     * add a config or non config node
+     **/
     function addNode(n) {
         if (n._def.category == "config") {
             configNodes[n.id] = n;
@@ -64,9 +76,11 @@ RED.nodes = (function() {
             }
         }
     }
+
     function addLink(l) {
         links.push(l);
     }
+    
     function addConfig(c) {
         configNodes[c.id] = c;
     }
@@ -204,8 +218,12 @@ RED.nodes = (function() {
         node.x = n.x;
         node.y = n.y;
         node.z = n.z;
-        node.width = n.width;
-        node.height = n.height;
+        node.w = n.w;
+        
+        // devicebox config node
+        if (n._def.category == "config") {
+           node.h = n.h;
+        }
 
         if (n._def.category != "config") {
             node.wires = [];
@@ -250,6 +268,9 @@ RED.nodes = (function() {
         return nns;
     }
 
+    /**
+     * Create complete flow description including tabs, config nodes, and non config nodes
+     **/
     //TODO: rename this (createCompleteNodeSet)
     function createCompleteNodeSet() {
         var nns = [];
@@ -271,6 +292,13 @@ RED.nodes = (function() {
         return nns;
     }
 
+
+    /**
+     * Import nodes from the backend into the client
+     *
+     * @param {boolean} createNewIds generate new ids for the nodes
+     * @param {String} list of nodes received from backend.
+     **/ 
     function importNodes(newNodesObj,createNewIds) {
         try {
             var i;
@@ -316,6 +344,7 @@ RED.nodes = (function() {
             var new_workspaces = [];
             var workspace_map = {};
             
+            // add tabs
             for (i=0;i<newNodes.length;i++) {
                 n = newNodes[i];
                 // TODO: remove workspace in next release+1
@@ -343,12 +372,21 @@ RED.nodes = (function() {
                 new_workspaces.push(defaultWorkspace);
             }
 
+            // Add device boxes
+            for (i=0;i<newNodes.length;i++) {
+                n = newNodes[i];
+                if (n.type === "devicebox") {
+                    RED.view.addDeviceBox(n);
+                }
+            }
+
             var node_map = {};
             var new_nodes = [];
             var new_links = [];
 
             for (i=0;i<newNodes.length;i++) {
                 n = newNodes[i];
+
                 // TODO: remove workspace in next release+1
                 if (n.type !== "workspace" && n.type !== "tab") {
                     var def = getType(n.type);

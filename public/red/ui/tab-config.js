@@ -13,6 +13,10 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  **/
+
+ /**
+ * right sidebar config tab, showing config nodes when selected
+ **/
 RED.sidebar.config = (function() {
     
     var content = document.createElement("div");

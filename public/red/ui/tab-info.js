@@ -13,6 +13,10 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  **/
+
+/**
+ * right sidebar info tab
+ **/
 RED.sidebar.info = (function() {
     
     var content = document.createElement("div");
