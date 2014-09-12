@@ -22,7 +22,7 @@ RED.nodes = (function() {
     var defaultWorkspace;
     var workspaces = {};    // tabs
 
-    var deviceboxes = [];   // list of device boxes for display in the flow
+    var deviceboxes = {};   // list of device boxes for display in the flow
     var devices = [];       // list of devices in the flow
 
     /**
@@ -157,9 +157,14 @@ RED.nodes = (function() {
     function addWorkspace(ws) {
         workspaces[ws.id] = ws;
     }
+
     function getWorkspace(id) {
         return workspaces[id];
     }
+    /**
+     * remove the workspace on a tab change
+     * return the removed links, etc.
+     **/
     function removeWorkspace(id) {
         delete workspaces[id];
         var removedNodes = [];
@@ -287,8 +292,11 @@ RED.nodes = (function() {
                 nns.push(workspaces[i]);
             }
         }
-        // TODO: add deviceBoxes here
-
+        for (i in deviceboxes) {
+            if (deviceboxes.hasOwnProperty(i)) {
+                nns.push(deviceboxes[i]);
+            }
+        }
         for (i in configNodes) {
             if (configNodes.hasOwnProperty(i)) {
                 nns.push(convertNode(configNodes[i], true));
@@ -331,7 +339,7 @@ RED.nodes = (function() {
                 n = newNodes[i];
                 // TODO: remove workspace in next release+1
                 // TODO: add devicebox
-                if (n.type != "workspace" && n.type != "tab" && !getType(n.type)) {
+                if (n.type != "workspace" && n.type != "devicebox" && n.type != "tab" && !getType(n.type)) {
                     // TODO: get this UI thing out of here! (see below as well)
                     n.name = n.type;
                     n.type = "unknown";
@@ -402,7 +410,7 @@ RED.nodes = (function() {
                 n = newNodes[i];
 
                 // TODO: remove workspace in next release+1
-                if (n.type !== "workspace" && n.type !== "tab") {
+                if (n.type !== "workspace" && n.type !== "tab" && n.type !== "devicebox") {
                     var def = getType(n.type);
                     if (def && def.category == "config") {
                         if (!RED.nodes.node(n.id)) {
