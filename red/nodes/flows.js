@@ -191,7 +191,7 @@ function parseConfig() {
     for (i=0;i<activeConfig.length;i++) {
         var type = activeConfig[i].type;
         // TODO: remove workspace in next release+1
-        if (type != "workspace" && type != "tab") {
+        if (type != "workspace" && type != "tab" && type != "devicebox") {
             nt = typeRegistry.get(type);
             if (!nt && missingTypes.indexOf(type) == -1) {
                 missingTypes.push(type);

@@ -253,7 +253,7 @@ var RED = (function() {
                 {id:"btn-help",icon:"fa fa-question",label:"Help...", href:"http://nodered.org/docs"}
             ]
         });
-
+        RED.devices.init(RED.view.setCurrentDevice,[{label:"Server",deviceId:"server"},{label:"Raspberry Pi",deviceId:"raspberry-pi"}]);
         RED.keyboard.add(/* ? */ 191,{shift:true},function(){showHelp();d3.event.preventDefault();});
         loadSettings();
         RED.comms.connect();
