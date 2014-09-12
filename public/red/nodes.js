@@ -22,6 +22,9 @@ RED.nodes = (function() {
     var defaultWorkspace;
     var workspaces = {};    // tabs
 
+    var deviceboxes = [];   // list of device boxes for display in the flow
+    var devices = [];       // list of devices in the flow
+
     /**
      * register a node type adding it to the palette
      **/
@@ -80,7 +83,7 @@ RED.nodes = (function() {
     function addLink(l) {
         links.push(l);
     }
-    
+
     function addConfig(c) {
         configNodes[c.id] = c;
     }
@@ -145,6 +148,10 @@ RED.nodes = (function() {
         for (var n=0;n<nodes.length;n++) {
             RED.editor.validateNode(nodes[n]);
         }
+    }
+
+    function addDeviceBox(devicebox) {
+        deviceboxes[devicebox.id] = devicebox;
     }
 
     function addWorkspace(ws) {
@@ -270,8 +277,8 @@ RED.nodes = (function() {
 
     /**
      * Create complete flow description including tabs, config nodes, and non config nodes
+     * before saving into the backend.
      **/
-    //TODO: rename this (createCompleteNodeSet)
     function createCompleteNodeSet() {
         var nns = [];
         var i;
@@ -280,6 +287,8 @@ RED.nodes = (function() {
                 nns.push(workspaces[i]);
             }
         }
+        // TODO: add deviceBoxes here
+
         for (i in configNodes) {
             if (configNodes.hasOwnProperty(i)) {
                 nns.push(convertNode(configNodes[i], true));
@@ -298,6 +307,7 @@ RED.nodes = (function() {
      *
      * @param {boolean} createNewIds generate new ids for the nodes
      * @param {String} list of nodes received from backend.
+     * TODO: consider adding tabs, boxes, and others to a containter object for non-nodes?  Reduce iterations.
      **/ 
     function importNodes(newNodesObj,createNewIds) {
         try {
@@ -320,6 +330,7 @@ RED.nodes = (function() {
             for (i=0;i<newNodes.length;i++) {
                 n = newNodes[i];
                 // TODO: remove workspace in next release+1
+                // TODO: add devicebox
                 if (n.type != "workspace" && n.type != "tab" && !getType(n.type)) {
                     // TODO: get this UI thing out of here! (see below as well)
                     n.name = n.type;
@@ -372,13 +383,16 @@ RED.nodes = (function() {
                 new_workspaces.push(defaultWorkspace);
             }
 
-            // Add device boxes
+            // Add device boxes to the view
             for (i=0;i<newNodes.length;i++) {
                 n = newNodes[i];
                 if (n.type === "devicebox") {
+                    addDeviceBox(n);
                     RED.view.addDeviceBox(n);
                 }
             }
+
+            // add nodes
 
             var node_map = {};
             var new_nodes = [];
@@ -501,6 +515,7 @@ RED.nodes = (function() {
         createCompleteNodeSet: createCompleteNodeSet,
         id: getID,
         nodes: nodes, // TODO: exposed for d3 vis
-        links: links  // TODO: exposed for d3 vis
+        links: links,  // TODO: exposed for d3 vis
+        addDeviceBox: addDeviceBox
     };
 })();

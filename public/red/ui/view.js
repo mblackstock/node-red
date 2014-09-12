@@ -190,6 +190,9 @@ RED.view = (function() {
         .attr('height', space_height)
         .attr('fill','#fff');
 
+    // group to hold the device boxes
+    var devicebox = vis.append('svg:g');
+
     //var gridScale = d3.scale.linear().range([0,2000]).domain([0,2000]);
     //var grid = vis.append('g');
     //
@@ -333,26 +336,22 @@ RED.view = (function() {
             
             if (!touchStartTime) {
                 var point = d3.mouse(this);
-                lasso = vis.append('rect')
-                    .attr("ox",point[0])
+                if (mouse_mode === RED.state.DEVICE_DRAWING) {
+                    lasso = devicebox.append('rect').attr("class","device-lasso");
+                } else {
+                    lasso = vis.append('rect').attr("class","lasso");
+                }
+                lasso.attr("ox",point[0])
                     .attr("oy",point[1])
                     .attr("rx",2)
                     .attr("ry",2)
                     .attr("x",point[0])
                     .attr("y",point[1])
                     .attr("width",0)
-                    .attr("height",0)
-                    .attr("class","lasso");
+                    .attr("height",0);
                 d3.event.preventDefault();
             }
-            if (mouse_mode === RED.state.DEVICE_DRAWING) {
-                lasso.attr("class","device-lasso");
-            } else {
-                lasso.attr("class","lasso");
-            }
         }
-
-
     }
 
     function canvasMouseMove() {
@@ -510,7 +509,7 @@ RED.view = (function() {
             });
             updateSelection();
             if (mouse_mode == RED.state.DEVICE_DRAWING) {
-                setDevices(lasso);
+                setDeviceBox(lasso);
             } else {
                 lasso.remove();
             }
@@ -697,35 +696,30 @@ RED.view = (function() {
      * setDevices
      * set the device_id of all of the selected devices, and add a device_box and device to the flow
      */
-    function setDevices(lasso) {
-        console.log(lasso);
+    function setDeviceBox(lasso) {
+
         console.log(moving_set);
-        // select the device from a list, or is there a 'current device' variable?
 
         // add a 'device_box' node to the model.
         var nn = { id:(1+Math.random()*4294967295).toString(16),
             type:"devicebox",
-            deviceId:"server", // 
+            deviceId:"server", // TODO: select the device from a list, or is there a 'current device' variable?
             x:Number(lasso.attr("x")),
             y:Number(lasso.attr("y")),
             w:Number(lasso.attr("width")),
             h:Number(lasso.attr("height")),
             z:activeWorkspace,
-            changed:true,
-            users:[]    // so that the side bar showing configs doesn't gack
+            changed:true
         };
-        nn._def = RED.nodes.getType(nn.type);
-        
-        // set the id of the lasso, so we can redraw it
-        // lasso.attr("id",nn.id);
-        // lasso.remove();
-        // vis.insert(lasso,":first-child");
 
-        RED.nodes.add(nn);
+        // add it to the device box list in the model.
+        RED.nodes.addDeviceBox(nn);
 
         // TODO: for each node in the moving set, set the device_id to the same as the box
 
         // TODO: when deleting a device_box, set the device to the local device id?
+
+        // device box added, save it
         setDirty(true);
     }
 
@@ -734,7 +728,7 @@ RED.view = (function() {
      * adds a devicebox node to the canvas
      **/
     function addDeviceBox(n) {
-        var devBox = vis.append('rect')
+        var devBox = devicebox.append('rect')
                     .attr("x",n.x)
                     .attr("y",n.y)
                     .attr("width",n.w)
