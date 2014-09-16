@@ -1049,6 +1049,10 @@ RED.view = (function() {
         if (mouse_mode != RED.state.JOINING) {
             // Don't bother redrawing nodes if we're drawing links
 
+            // TODO: first draw the boxes
+
+
+            // then draw the nodes
             var node = vis.selectAll(".nodegroup").data(RED.nodes.nodes.filter(function(d) { return d.z == activeWorkspace }),function(d){return d.id});
             node.exit().remove();
 
@@ -1056,171 +1060,160 @@ RED.view = (function() {
             nodeEnter.each(function(d,i) {
                     var node = d3.select(this);
                     node.attr("id",d.id);
-                    if (d.type == "devicebox") {
-                        // how to draw a device box
-                        var device_box_rect = node.append("rect")
-                            .attr("class", "node")
-                            .classed("node_unknown",function(d) { return d.type == "unknown"; })
-                            .attr("rx", 6)
-                            .attr("ry", 6)
-                            .attr("x",d.x)
-                            .attr("y",d.y)
-                            .attr("width",d.w)
-                            .attr("height",d.h);
-                    } else {
-                        // drawing a node
-                        var l = d._def.label;
-                        l = (typeof l === "function" ? l.call(d) : l)||"";
-                        d.w = Math.max(node_width,calculateTextWidth(l)+(d._def.inputs>0?7:0) );
-                        d.h = Math.max(node_height,(d.outputs||0) * 15);
+                    
+                    // drawing a node
+                    var l = d._def.label;
+                    l = (typeof l === "function" ? l.call(d) : l)||"";
+                    d.w = Math.max(node_width,calculateTextWidth(l)+(d._def.inputs>0?7:0) );
+                    d.h = Math.max(node_height,(d.outputs||0) * 15);
 
-                        if (d._def.badge) {
-                            var badge = node.append("svg:g").attr("class","node_badge_group");
-                            var badgeRect = badge.append("rect").attr("class","node_badge").attr("rx",5).attr("ry",5).attr("width",40).attr("height",15);
-                            badge.append("svg:text").attr("class","node_badge_label").attr("x",35).attr("y",11).attr('text-anchor','end').text(d._def.badge());
-                            if (d._def.onbadgeclick) {
-                                badgeRect.attr("cursor","pointer")
-                                    .on("click",function(d) { d._def.onbadgeclick.call(d);d3.event.preventDefault();});
-                            }
+                    if (d._def.badge) {
+                        var badge = node.append("svg:g").attr("class","node_badge_group");
+                        var badgeRect = badge.append("rect").attr("class","node_badge").attr("rx",5).attr("ry",5).attr("width",40).attr("height",15);
+                        badge.append("svg:text").attr("class","node_badge_label").attr("x",35).attr("y",11).attr('text-anchor','end').text(d._def.badge());
+                        if (d._def.onbadgeclick) {
+                            badgeRect.attr("cursor","pointer")
+                                .on("click",function(d) { d._def.onbadgeclick.call(d);d3.event.preventDefault();});
                         }
+                    }
 
-                        if (d._def.button) {
-                            var nodeButtonGroup = node.append('svg:g')
-                                .attr("transform",function(d) { return "translate("+((d._def.align == "right") ? 94 : -25)+",2)"; })
-                                .attr("class",function(d) { return "node_button "+((d._def.align == "right") ? "node_right_button" : "node_left_button"); });
-                            nodeButtonGroup.append('rect')
-                                .attr("rx",8)
-                                .attr("ry",8)
-                                .attr("width",32)
-                                .attr("height",node_height-4)
-                                .attr("fill","#eee");//function(d) { return d._def.color;})
-                            nodeButtonGroup.append('rect')
-                                .attr("x",function(d) { return d._def.align == "right"? 10:5})
-                                .attr("y",4)
-                                .attr("rx",5)
-                                .attr("ry",5)
-                                .attr("width",16)
-                                .attr("height",node_height-12)
-                                .attr("fill",function(d) { return d._def.color;})
-                                .attr("cursor","pointer")
-                                .on("mousedown",function(d) {if (!lasso) { d3.select(this).attr("fill-opacity",0.2);d3.event.preventDefault(); d3.event.stopPropagation();}})
-                                .on("mouseup",function(d) {if (!lasso) { d3.select(this).attr("fill-opacity",0.4);d3.event.preventDefault();d3.event.stopPropagation();}})
-                                .on("mouseover",function(d) {if (!lasso) { d3.select(this).attr("fill-opacity",0.4);}})
-                                .on("mouseout",function(d) {if (!lasso) {
-                                    var op = 1;
-                                    if (d._def.button.toggle) {
-                                        op = d[d._def.button.toggle]?1:0.2;
-                                    }
-                                    d3.select(this).attr("fill-opacity",op);
-                                }})
-                                .on("click",nodeButtonClicked)
-                                .on("touchstart",nodeButtonClicked)
-                        }
-
-                        var mainRect = node.append("rect")
-                            .attr("class", "node")
-                            .classed("node_unknown",function(d) { return d.type == "unknown"; })
-                            .attr("rx", 6)
-                            .attr("ry", 6)
+                    if (d._def.button) {
+                        var nodeButtonGroup = node.append('svg:g')
+                            .attr("transform",function(d) { return "translate("+((d._def.align == "right") ? 94 : -25)+",2)"; })
+                            .attr("class",function(d) { return "node_button "+((d._def.align == "right") ? "node_right_button" : "node_left_button"); });
+                        nodeButtonGroup.append('rect')
+                            .attr("rx",8)
+                            .attr("ry",8)
+                            .attr("width",32)
+                            .attr("height",node_height-4)
+                            .attr("fill","#eee");//function(d) { return d._def.color;})
+                        nodeButtonGroup.append('rect')
+                            .attr("x",function(d) { return d._def.align == "right"? 10:5})
+                            .attr("y",4)
+                            .attr("rx",5)
+                            .attr("ry",5)
+                            .attr("width",16)
+                            .attr("height",node_height-12)
                             .attr("fill",function(d) { return d._def.color;})
-                            .on("mouseup",nodeMouseUp)
-                            .on("mousedown",nodeMouseDown)
-                            .on("touchstart",function(d) {
-                                var obj = d3.select(this);
-                                var touch0 = d3.event.touches.item(0);
-                                var pos = [touch0.pageX,touch0.pageY];
-                                startTouchCenter = [touch0.pageX,touch0.pageY];
-                                startTouchDistance = 0;
-                                touchStartTime = setTimeout(function() {
-                                    showTouchMenu(obj,pos);
-                                },touchLongPressTimeout);
-                                nodeMouseDown.call(this,d)       
-                            })
-                            .on("touchend", function(d) {
-                                clearTimeout(touchStartTime);
-                                touchStartTime = null;
-                                if  (RED.touch.radialMenu.active()) {
-                                    d3.event.stopPropagation();
-                                    return;
+                            .attr("cursor","pointer")
+                            .on("mousedown",function(d) {if (!lasso) { d3.select(this).attr("fill-opacity",0.2);d3.event.preventDefault(); d3.event.stopPropagation();}})
+                            .on("mouseup",function(d) {if (!lasso) { d3.select(this).attr("fill-opacity",0.4);d3.event.preventDefault();d3.event.stopPropagation();}})
+                            .on("mouseover",function(d) {if (!lasso) { d3.select(this).attr("fill-opacity",0.4);}})
+                            .on("mouseout",function(d) {if (!lasso) {
+                                var op = 1;
+                                if (d._def.button.toggle) {
+                                    op = d[d._def.button.toggle]?1:0.2;
                                 }
-                                nodeMouseUp.call(this,d);
-                            })
-                            .on("mouseover",function(d) {
-                                    if (mouse_mode === 0) {
-                                        var node = d3.select(this);
-                                        node.classed("node_hovered",true);
-                                    }
-                            })
-                            .on("mouseout",function(d) {
+                                d3.select(this).attr("fill-opacity",op);
+                            }})
+                            .on("click",nodeButtonClicked)
+                            .on("touchstart",nodeButtonClicked)
+                    }
+
+                    var mainRect = node.append("rect")
+                        .attr("class", "node")
+                        .classed("node_unknown",function(d) { return d.type == "unknown"; })
+                        .attr("rx", 6)
+                        .attr("ry", 6)
+                        .attr("fill",function(d) { return d._def.color;})
+                        .on("mouseup",nodeMouseUp)
+                        .on("mousedown",nodeMouseDown)
+                        .on("touchstart",function(d) {
+                            var obj = d3.select(this);
+                            var touch0 = d3.event.touches.item(0);
+                            var pos = [touch0.pageX,touch0.pageY];
+                            startTouchCenter = [touch0.pageX,touch0.pageY];
+                            startTouchDistance = 0;
+                            touchStartTime = setTimeout(function() {
+                                showTouchMenu(obj,pos);
+                            },touchLongPressTimeout);
+                            nodeMouseDown.call(this,d)       
+                        })
+                        .on("touchend", function(d) {
+                            clearTimeout(touchStartTime);
+                            touchStartTime = null;
+                            if  (RED.touch.radialMenu.active()) {
+                                d3.event.stopPropagation();
+                                return;
+                            }
+                            nodeMouseUp.call(this,d);
+                        })
+                        .on("mouseover",function(d) {
+                                if (mouse_mode === 0) {
                                     var node = d3.select(this);
-                                    node.classed("node_hovered",false);
-                            });
+                                    node.classed("node_hovered",true);
+                                }
+                        })
+                        .on("mouseout",function(d) {
+                                var node = d3.select(this);
+                                node.classed("node_hovered",false);
+                        });
 
-                       //node.append("rect").attr("class", "node-gradient-top").attr("rx", 6).attr("ry", 6).attr("height",30).attr("stroke","none").attr("fill","url(#gradient-top)").style("pointer-events","none");
-                       //node.append("rect").attr("class", "node-gradient-bottom").attr("rx", 6).attr("ry", 6).attr("height",30).attr("stroke","none").attr("fill","url(#gradient-bottom)").style("pointer-events","none");
+                   //node.append("rect").attr("class", "node-gradient-top").attr("rx", 6).attr("ry", 6).attr("height",30).attr("stroke","none").attr("fill","url(#gradient-top)").style("pointer-events","none");
+                   //node.append("rect").attr("class", "node-gradient-bottom").attr("rx", 6).attr("ry", 6).attr("height",30).attr("stroke","none").attr("fill","url(#gradient-bottom)").style("pointer-events","none");
 
-                        if (d._def.icon) {
+                    if (d._def.icon) {
+                        
+                        var icon_group = node.append("g")
+                            .attr("class","node_icon_group")
+                            .attr("x",0).attr("y",0);
+                        
+                        var icon_shade = icon_group.append("rect")
+                            .attr("x",0).attr("y",0)
+                            .attr("class","node_icon_shade")
+                            .attr("width","30")
+                            .attr("stroke","none")
+                            .attr("fill","#000")
+                            .attr("fill-opacity","0.05")
+                            .attr("height",function(d){return Math.min(50,d.h-4);});
                             
-                            var icon_group = node.append("g")
-                                .attr("class","node_icon_group")
-                                .attr("x",0).attr("y",0);
+                        var icon = icon_group.append("image")
+                            .attr("xlink:href","icons/"+d._def.icon)
+                            .attr("class","node_icon")
+                            .attr("x",0)
+                            .attr("width","30")
+                            .attr("height","30");
                             
-                            var icon_shade = icon_group.append("rect")
-                                .attr("x",0).attr("y",0)
-                                .attr("class","node_icon_shade")
-                                .attr("width","30")
-                                .attr("stroke","none")
-                                .attr("fill","#000")
-                                .attr("fill-opacity","0.05")
-                                .attr("height",function(d){return Math.min(50,d.h-4);});
-                                
-                            var icon = icon_group.append("image")
-                                .attr("xlink:href","icons/"+d._def.icon)
-                                .attr("class","node_icon")
-                                .attr("x",0)
-                                .attr("width","30")
-                                .attr("height","30");
-                                
-                            var icon_shade_border = icon_group.append("path")
-                                .attr("d",function(d) { return "M 30 1 l 0 "+(d.h-2)})
-                                .attr("class","node_icon_shade_border")
-                                .attr("stroke-opacity","0.1")
-                                .attr("stroke","#000")
-                                .attr("stroke-width","2");
+                        var icon_shade_border = icon_group.append("path")
+                            .attr("d",function(d) { return "M 30 1 l 0 "+(d.h-2)})
+                            .attr("class","node_icon_shade_border")
+                            .attr("stroke-opacity","0.1")
+                            .attr("stroke","#000")
+                            .attr("stroke-width","2");
 
-                            if ("right" == d._def.align) {
-                                icon_group.attr('class','node_icon_group node_icon_group_'+d._def.align);
-                                icon_shade_border.attr("d",function(d) { return "M 0 1 l 0 "+(d.h-2)})
-                                //icon.attr('class','node_icon node_icon_'+d._def.align);
-                                //icon.attr('class','node_icon_shade node_icon_shade_'+d._def.align);
-                                //icon.attr('class','node_icon_shade_border node_icon_shade_border_'+d._def.align);
-                            }
-                            
-                            //if (d._def.inputs > 0 && d._def.align == null) {
-                            //    icon_shade.attr("width",35);
-                            //    icon.attr("transform","translate(5,0)");
-                            //    icon_shade_border.attr("transform","translate(5,0)");
-                            //}
-                            //if (d._def.outputs > 0 && "right" == d._def.align) {
-                            //    icon_shade.attr("width",35); //icon.attr("x",5);
-                            //}
-                            
-                            var img = new Image();
-                            img.src = "icons/"+d._def.icon;
-                            img.onload = function() {
-                                icon.attr("width",Math.min(img.width,30));
-                                icon.attr("height",Math.min(img.height,30));
-                                icon.attr("x",15-Math.min(img.width,30)/2);
-                                //if ("right" == d._def.align) {
-                                //    icon.attr("x",function(d){return d.w-img.width-1-(d.outputs>0?5:0);});
-                                //    icon_shade.attr("x",function(d){return d.w-30});
-                                //    icon_shade_border.attr("d",function(d){return "M "+(d.w-30)+" 1 l 0 "+(d.h-2);});
-                                //}
-                            }
-                            
-                            //icon.style("pointer-events","none");
-                            icon_group.style("pointer-events","none");
+                        if ("right" == d._def.align) {
+                            icon_group.attr('class','node_icon_group node_icon_group_'+d._def.align);
+                            icon_shade_border.attr("d",function(d) { return "M 0 1 l 0 "+(d.h-2)})
+                            //icon.attr('class','node_icon node_icon_'+d._def.align);
+                            //icon.attr('class','node_icon_shade node_icon_shade_'+d._def.align);
+                            //icon.attr('class','node_icon_shade_border node_icon_shade_border_'+d._def.align);
                         }
+                        
+                        //if (d._def.inputs > 0 && d._def.align == null) {
+                        //    icon_shade.attr("width",35);
+                        //    icon.attr("transform","translate(5,0)");
+                        //    icon_shade_border.attr("transform","translate(5,0)");
+                        //}
+                        //if (d._def.outputs > 0 && "right" == d._def.align) {
+                        //    icon_shade.attr("width",35); //icon.attr("x",5);
+                        //}
+                        
+                        var img = new Image();
+                        img.src = "icons/"+d._def.icon;
+                        img.onload = function() {
+                            icon.attr("width",Math.min(img.width,30));
+                            icon.attr("height",Math.min(img.height,30));
+                            icon.attr("x",15-Math.min(img.width,30)/2);
+                            //if ("right" == d._def.align) {
+                            //    icon.attr("x",function(d){return d.w-img.width-1-(d.outputs>0?5:0);});
+                            //    icon_shade.attr("x",function(d){return d.w-30});
+                            //    icon_shade_border.attr("d",function(d){return "M "+(d.w-30)+" 1 l 0 "+(d.h-2);});
+                            //}
+                        }
+                        
+                        //icon.style("pointer-events","none");
+                        icon_group.style("pointer-events","none");
+                        
                         var text = node.append('svg:text').attr('class','node_label').attr('x', 38).attr('dy', '.35em').attr('text-anchor','start');
                         if (d._def.align) {
                             text.attr('class','node_label node_label_'+d._def.align);

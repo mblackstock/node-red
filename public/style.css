@@ -26,7 +26,7 @@ body {
     left: 0;
     width: 100%;
     height: 40px;
-    background: #000;
+    background: #444;
     box-sizing: border-box;
     padding: 5px 0px 5px 20px;
 }
@@ -67,13 +67,19 @@ span.logo {
     text-decoration: none;
     color: #ccc;
 }
-span.logo span {
-    vertical-align: middle;
-    font-size: 16px !important;
+
+span.logo span.sublogo{
+  font-size: 9pt !important;
 }
+
+span.logo span {
+    font-size: 20px !important;
+}
+
 span.logo img {
     height: 18px;
 }
+
 
 #tools .button {
     line-height: 22px;
