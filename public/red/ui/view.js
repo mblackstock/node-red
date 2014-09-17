@@ -193,7 +193,8 @@ RED.view = (function() {
     // group to hold the device boxes
     var devicebox = vis.append('svg:g');
 
-    var currentDevice = "";
+    // TODO: get this from settings
+    var currentDevice = { deviceId:"server", label:"Server"};
 
     /**
      * set the current device the user selected to configure nodes
@@ -591,8 +592,8 @@ RED.view = (function() {
 
                 // generate the node id, etc.
                 var nn = { id:(1+Math.random()*4294967295).toString(16),x: mousePos[0],y:mousePos[1],w:node_width,z:activeWorkspace};
-                // TODO: add default deviceId for a node here
                 nn.type = selected_tool;
+                nn.deviceId = currentDevice.deviceId;
                 nn._def = RED.nodes.getType(nn.type);
                 nn.outputs = nn._def.outputs;
                 nn.changed = true;

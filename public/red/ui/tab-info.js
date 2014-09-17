@@ -50,6 +50,7 @@ RED.sidebar.info = (function() {
         table += '<tr class="blank"><td colspan="2">Node</td></tr>';
         table += "<tr><td>Type</td><td>&nbsp;"+node.type+"</td></tr>";
         table += "<tr><td>ID</td><td>&nbsp;"+node.id+"</td></tr>";
+        table += "<tr><td>deviceId</td><td>&nbsp;"+node.deviceId+"</td></tr>";
         table += '<tr class="blank"><td colspan="2">Properties</td></tr>';
         for (var n in node._def.defaults) {
             if (node._def.defaults.hasOwnProperty(n)) {
