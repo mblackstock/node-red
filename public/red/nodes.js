@@ -22,7 +22,7 @@ RED.nodes = (function() {
     var defaultWorkspace;
     var workspaces = {};    // tabs
 
-    var deviceboxes = {};   // list of device boxes for display in the flow
+    var deviceboxes = [];   // list of device boxes for display in the flow
     var devices = [];       // list of devices in the flow
 
     /**
@@ -151,7 +151,7 @@ RED.nodes = (function() {
     }
 
     function addDeviceBox(devicebox) {
-        deviceboxes[devicebox.id] = devicebox;
+        deviceboxes.push(devicebox);
     }
 
     function addWorkspace(ws) {
@@ -292,10 +292,8 @@ RED.nodes = (function() {
                 nns.push(workspaces[i]);
             }
         }
-        for (i in deviceboxes) {
-            if (deviceboxes.hasOwnProperty(i)) {
-                nns.push(deviceboxes[i]);
-            }
+        for (i=0;i<deviceboxes.length;i++) {
+            nns.push(deviceboxes[i]);
         }
         for (i in configNodes) {
             if (configNodes.hasOwnProperty(i)) {
@@ -396,7 +394,6 @@ RED.nodes = (function() {
                 n = newNodes[i];
                 if (n.type === "devicebox") {
                     addDeviceBox(n);
-                    RED.view.addDeviceBox(n);
                 }
             }
 
@@ -524,6 +521,7 @@ RED.nodes = (function() {
         id: getID,
         nodes: nodes, // TODO: exposed for d3 vis
         links: links,  // TODO: exposed for d3 vis
-        addDeviceBox: addDeviceBox
+        addDeviceBox: addDeviceBox,
+        deviceboxes: deviceboxes    // exposed for vis
     };
 })();

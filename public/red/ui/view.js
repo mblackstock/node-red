@@ -730,7 +730,7 @@ RED.view = (function() {
         // add a 'device_box' node to the model.
         var nn = { id:(1+Math.random()*4294967295).toString(16),
             type:"devicebox",
-            deviceId:"server", // TODO: select the device from a list, or is there a 'current device' variable?
+            deviceId:currentDevice.deviceId,
             x:Number(lasso.attr("x")),
             y:Number(lasso.attr("y")),
             w:Number(lasso.attr("width")),
@@ -747,28 +747,17 @@ RED.view = (function() {
             var n = moving_set[i];
 
             n.n.deviceId = currentDevice.deviceId;
-            n.n.dirty = true;
-            n.n.changed = true;
+            // n.n.dirty = true;
+            // n.n.changed = true;
         }
         // TODO: when deleting a device_box, set the device to the local device id?
 
         // device box added, save it
         setDirty(true);
         RED.sidebar.info.refresh(n.n);
+        lasso.remove();
+        lasso = null;
         redraw();
-    }
-
-    /**
-     * addDeviceBox
-     * adds a devicebox node to the canvas
-     **/
-    function addDeviceBox(n) {
-        var devBox = devicebox.append('rect')
-                    .attr("x",n.x)
-                    .attr("y",n.y)
-                    .attr("width",n.w)
-                    .attr("height",n.h)
-                    .attr("class","device-lasso");
     }
 
     function endKeyboardMove() {
@@ -780,6 +769,7 @@ RED.view = (function() {
         }
         RED.history.push({t:'move',nodes:ns,dirty:dirty});
     }
+    
     function moveSelection(dx,dy) {
         var minX = 0;
         var minY = 0;
@@ -1049,13 +1039,42 @@ RED.view = (function() {
         if (mouse_mode != RED.state.JOINING) {
             // Don't bother redrawing nodes if we're drawing links
 
-            // TODO: first draw the boxes
+            // TODO: first draw the device boxes
+            // var devBox = devicebox.append('rect')
+            //             .attr("x",n.x)
+            //             .attr("y",n.y)
+            //             .attr("width",n.w)
+            //             .attr("height",n.h)
+            //             .attr("class","device-lasso");
 
+            var devbox = devicebox.selectAll(".devboxgroup").data(RED.nodes.deviceboxes.filter(function(d) {
+                return d.z == activeWorkspace
+            }),function(d){
+                return d.id
+            });
+            devbox.exit().remove();
+
+            var devboxEnter = devbox.enter().insert("svg:g").attr("class", "devboxgroup");
+            devboxEnter.each(function(d,i) {
+                var db = d3.select(this);
+                db.attr("id", d.id);
+                db.attr("transform", "translate("+d.x+","+d.y+")");
+
+                var dbr = db.append('rect')
+                            .attr("width",d.w)
+                            .attr("height",d.h)
+                            .attr("class","device-lasso");
+
+                var dbt = db.append('text').attr("x",5).attr("y",15).text(d.deviceId);
+            });
 
             // then draw the nodes
-            var node = vis.selectAll(".nodegroup").data(RED.nodes.nodes.filter(function(d) { return d.z == activeWorkspace }),function(d){return d.id});
+
+            // first delete any that have been removed from the model
+            var node = vis.selectAll(".nodegroup").data(RED.nodes.nodes.filter(function(d) { return d.z == activeWorkspace }),function(d){ return d.id});
             node.exit().remove();
 
+            // add any that have been added
             var nodeEnter = node.enter().insert("svg:g").attr("class", "node nodegroup");
             nodeEnter.each(function(d,i) {
                     var node = d3.select(this);
@@ -1746,7 +1765,6 @@ RED.view = (function() {
         showImportNodesDialog: showImportNodesDialog,
         showExportNodesDialog: showExportNodesDialog,
         showExportNodesLibraryDialog: showExportNodesLibraryDialog,
-        addDeviceBox: addDeviceBox,
         setCurrentDevice: setCurrentDevice
 
     };
