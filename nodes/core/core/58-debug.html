@@ -34,10 +34,6 @@
         <input type="text" id="node-input-name" placeholder="Name">
     </div>
 
-    <div class="form-row">
-        <label for="node-input-deviceId"><i class="icon-tag"></i> Device ID</label>
-        <input type="text" id="node-input-deviceId" placeholder="Device ID">
-    </div>
 </script>
 
 <script type="text/x-red" data-help-name="debug">
@@ -56,7 +52,6 @@
         category: 'output',
         defaults: {
             name: {value:""},
-            deviceId: {value:"server"},
             active: {value:true},
             console: {value:"false"},
             complete: {value:"false"}

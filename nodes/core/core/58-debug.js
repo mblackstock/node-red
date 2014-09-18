@@ -24,7 +24,6 @@ module.exports = function(RED) {
     function DebugNode(n) {
         RED.nodes.createNode(this,n);
         this.name = n.name;
-        this.deviceId = n.deviceId;
         this.complete = n.complete;
         this.console = n.console;
         this.active = (n.active == null)||n.active;
