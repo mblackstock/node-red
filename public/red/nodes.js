@@ -23,7 +23,7 @@ RED.nodes = (function() {
     var workspaces = {};    // tabs
 
     var deviceboxes = [];   // list of device boxes for display in the flow
-    var devices = [];       // list of devices in the flow
+    var defaultDeviceId;      // default device to use when none specified
 
     /**
      * register a node type adding it to the palette
@@ -397,6 +397,7 @@ RED.nodes = (function() {
                 new_workspaces.push(defaultWorkspace);
             }
 
+
             // Add device boxes to the view
             for (i=0;i<newNodes.length;i++) {
                 n = newNodes[i];
@@ -405,6 +406,10 @@ RED.nodes = (function() {
                 }
             }
 
+
+            // set up default device
+            defaultDeviceId = RED.settings.deviceId;
+            
             // add nodes
 
             var node_map = {};
@@ -460,6 +465,10 @@ RED.nodes = (function() {
                             if (node._def.defaults.hasOwnProperty(d2)) {
                                 node[d2] = n[d2];
                             }
+                        }
+
+                        if (!node.deviceId) {
+                            node.deviceId = defaultDeviceId;
                         }
 
                         addNode(node);

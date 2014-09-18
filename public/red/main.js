@@ -141,10 +141,11 @@ var RED = (function() {
             ]
     });
 
-    function loadSettings() {
+    function loadSettings(cb) {
         $.get('settings', function(data) {
             RED.settings = data;
             console.log("Node-RED: "+data.version);
+            cb(data);
             loadNodes();
         });
     }
@@ -253,9 +254,21 @@ var RED = (function() {
                 {id:"btn-help",icon:"fa fa-question",label:"Help...", href:"http://nodered.org/docs"}
             ]
         });
-        RED.devices.init(RED.view.setCurrentDevice,[{label:"Server",deviceId:"server"},{label:"Raspberry Pi",deviceId:"raspberry-pi"}]);
+        loadSettings(function(settings) {
+            var defaultDevice = settings.deviceId;
+            var i;
+            var dev;
+            // set the device to the default
+            for (i=0; i<settings.devices.length; i++) {
+                dev = settings.devices[i];
+                if (dev.deviceId == settings.deviceId)
+                    break;
+            }
+            RED.view.setCurrentDevice(dev);
+            // set up the device list pop down
+            RED.devices.init(RED.view.setCurrentDevice,settings.devices);          
+        });
         RED.keyboard.add(/* ? */ 191,{shift:true},function(){showHelp();d3.event.preventDefault();});
-        loadSettings();
         RED.comms.connect();
     });
 

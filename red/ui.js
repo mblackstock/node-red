@@ -65,7 +65,9 @@ function setupUI(_settings) {
     app.get("/settings", function(req,res) {
         var safeSettings = {
             httpNodeRoot: settings.httpNodeRoot,
-            version: settings.version
+            version: settings.version,
+            deviceId: settings.deviceId,
+            devices: settings.devices
         };
         res.json(safeSettings);
     });
