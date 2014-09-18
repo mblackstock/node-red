@@ -154,6 +154,13 @@ RED.nodes = (function() {
         deviceboxes.push(devicebox);
     }
 
+    function removeDeviceBox(db) {
+        var index = deviceboxes.indexOf(db);
+        if (index != -1) {
+            deviceboxes.splice(index,1);
+        }
+    }
+
     function addWorkspace(ws) {
         workspaces[ws.id] = ws;
     }
@@ -523,6 +530,7 @@ RED.nodes = (function() {
         nodes: nodes, // TODO: exposed for d3 vis
         links: links,  // TODO: exposed for d3 vis
         addDeviceBox: addDeviceBox,
+        removeDeviceBox: removeDeviceBox,
         deviceboxes: deviceboxes    // exposed for vis
     };
 })();

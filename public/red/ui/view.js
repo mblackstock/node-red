@@ -29,7 +29,6 @@ RED.view = (function() {
         moveTouchCenter = [],
         touchStartTime = 0;
 
-
     var activeWorkspace = 0;
     var workspaceScrollPositions = {};
 
@@ -73,7 +72,6 @@ RED.view = (function() {
         .on("dblclick.zoom", null)
         .append('svg:g')
         .on("mousemove", canvasMouseMove)
-        .on("mousedown", canvasMouseDown)
         .on("mouseup", canvasMouseUp)
         .on("touchend", function() {
             clearTimeout(touchStartTime);
@@ -188,13 +186,17 @@ RED.view = (function() {
     var outer_background = vis.append('svg:rect')
         .attr('width', space_width)
         .attr('height', space_height)
-        .attr('fill','#fff');
+        .attr('fill','#fff')
+        .on("mousedown", canvasMouseDown);
 
-    // group to hold the device boxes
+    // group to hold the device boxes behind the nodes
     var devicebox = vis.append('svg:g');
 
     // TODO: get this from settings
     var currentDevice = { deviceId:"server", label:"Server"};
+
+    // currently selected dev box
+    var selected_devBox = null;
 
     /**
      * set the current device the user selected to configure nodes
@@ -336,8 +338,15 @@ RED.view = (function() {
             selected_link = null;
             updateSelection();
         }
-        // selecting to add nodes to a device
-        if (mouse_mode === 0 || mouse_mode === RED.state.DEVICE_DRAWING) {
+
+        // selecting to add nodes to a device, or selection lasso
+        if (mouse_mode === RED.state.DEFAULT || mouse_mode === RED.state.DEVICE_DRAWING) {
+
+            // clear devBox selection if any
+            if (selected_devBox != null) {
+                selected_devBox.selected = false;
+                selected_devBox = null;
+            }
 
             if (lasso) {
                 lasso.remove();
@@ -347,18 +356,10 @@ RED.view = (function() {
             if (!touchStartTime) {
                 var point = d3.mouse(this);
                 if (mouse_mode === RED.state.DEVICE_DRAWING) {
-
+                    // draw selection in the deviceBox layer
                     lasso = devicebox.append('rect').attr("class","device-lasso");
-
-                    // associate data with the lasso
-                    // lasso = devicebox.append('g').attr("class","device-lasso");
-                    // lasso.append('rect').attr("class","device-lasso");
-                    // lasso.append('text').datum(currentDevice)
-                    //     .text(function(d) {
-                    //         return d.label;
-                    //     });
-
                 } else {
+                    // draw selection lasso in the node layer
                     lasso = vis.append('rect').attr("class","lasso");
                 }
                 lasso.attr("ox",point[0])
@@ -660,12 +661,14 @@ RED.view = (function() {
     }
 
     function clearSelection() {
+        // clear node selection
         for (var i=0;i<moving_set.length;i++) {
             var n = moving_set[i];
             n.n.dirty = true;
             n.n.selected = false;
         }
         moving_set = [];
+        // clear link selection
         selected_link = null;
     }
 
@@ -683,7 +686,7 @@ RED.view = (function() {
             RED.menu.setDisabled("btn-export-clipboard",false);
             RED.menu.setDisabled("btn-export-library",false);
         }
-        if (moving_set.length === 0 && selected_link == null) {
+        if (moving_set.length === 0 && selected_link == null && selected_devBox == null) {
             RED.keyboard.remove(/* backspace */ 8);
             RED.keyboard.remove(/* delete */ 46);
             RED.keyboard.remove(/* c */ 67);
@@ -717,9 +720,6 @@ RED.view = (function() {
      * set the device_id of all of the selected devices, and add a device_box and device to the flow
      */
     function setDeviceBox(lasso) {
-
-        console.log(moving_set);
-        console.log(currentDevice.label);
 
         // only keep boxes that surround nodes
         if (moving_set.length == 0) {
@@ -821,6 +821,9 @@ RED.view = (function() {
             RED.nodes.removeLink(selected_link);
             removedLinks.push(selected_link);
             setDirty(true);
+        }
+        if (selected_devBox) {
+            RED.nodes.removeDeviceBox(selected_devBox);
         }
         RED.history.push({t:'delete',nodes:removedNodes,links:removedLinks,dirty:startDirty});
 
@@ -1033,6 +1036,26 @@ RED.view = (function() {
         RED.touch.radialMenu.show(obj,pos,options);
         resetMouseVars();
     }
+
+    /**
+     * select the box
+     */
+    function devBoxMouseDown(d) {
+
+        // clear devBox selection
+        if (selected_devBox != null) {
+            selected_devBox.selected = false;
+        }
+        selected_devBox = null;
+
+        selected_devBox = d;
+        d.dirty = true;
+        d.selected = true;
+        updateSelection();
+        redraw();
+        d3.event.preventDefault();
+    }
+
     function redraw() {
         vis.attr("transform","scale("+scaleFactor+")");
         outer.attr("width", space_width*scaleFactor).attr("height", space_height*scaleFactor);
@@ -1040,14 +1063,8 @@ RED.view = (function() {
         if (mouse_mode != RED.state.JOINING) {
             // Don't bother redrawing nodes if we're drawing links
 
-            // TODO: first draw the device boxes
-            // var devBox = devicebox.append('rect')
-            //             .attr("x",n.x)
-            //             .attr("y",n.y)
-            //             .attr("width",n.w)
-            //             .attr("height",n.h)
-            //             .attr("class","device-lasso");
-
+            // first draw the device boxes
+            // delete boxes that have been deleted
             var devbox = devicebox.selectAll(".devboxgroup").data(RED.nodes.deviceboxes.filter(function(d) {
                 return d.z == activeWorkspace
             }),function(d){
@@ -1055,6 +1072,7 @@ RED.view = (function() {
             });
             devbox.exit().remove();
 
+            // add new ones
             var devboxEnter = devbox.enter().insert("svg:g").attr("class", "devboxgroup");
             devboxEnter.each(function(d,i) {
                 var db = d3.select(this);
@@ -1067,6 +1085,14 @@ RED.view = (function() {
                             .attr("class","device-lasso");
 
                 var dbt = db.append('text').attr("x",5).attr("y",15).text(d.deviceId);
+            });
+
+            // connect mouse down to the boxes to select them
+            devbox.on("mousedown",devBoxMouseDown);
+
+            // highlight selected devbox
+            devbox.classed("devbox_selected", function(d) {
+                return d === selected_devBox || d.selected;
             });
 
             // then draw the nodes

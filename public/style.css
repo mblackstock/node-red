@@ -397,8 +397,11 @@ span.logo img {
 
 .device-lasso {
     stroke-width: 4px;
-    stroke: #0A0A0A;
-    fill: rgba(128,128,128,0.1);
+    fill: rgba(128,128,128,0.2);
+}
+
+.devbox_selected {
+   stroke: #ff7f0e;
 }
 
 .group-box {
