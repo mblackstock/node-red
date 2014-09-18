@@ -736,8 +736,7 @@ RED.view = (function() {
             y:Number(lasso.attr("y")),
             w:Number(lasso.attr("width")),
             h:Number(lasso.attr("height")),
-            z:activeWorkspace,
-            changed:true
+            z:activeWorkspace
         };
 
         // add it to the device box list in the model.
