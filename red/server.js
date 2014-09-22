@@ -43,6 +43,13 @@ function createServer(_server,_settings) {
     app.get("/flows",function(req,res) {
         res.json(redNodes.getFlows());
     });
+
+    app.get("/load", function(req,res) {
+        // get the flow from the master server
+        redNodes.loadMasterFlows(settings.masterDevice).then(function() {
+            res.json(redNodes.getFlows());
+        });
+    });
     
     app.post("/flows",
         express.json(),

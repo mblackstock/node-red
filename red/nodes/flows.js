@@ -19,7 +19,6 @@ var when = require("when");
 
 var typeRegistry = require("./registry");
 var credentials = require("./credentials");
-var log = require("../log");
 var events = require("../events");
 
 var storage = null;

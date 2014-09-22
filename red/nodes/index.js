@@ -17,6 +17,8 @@ var registry = require("./registry");
 var credentials = require("./credentials");
 var flows = require("./flows");
 var Node = require("./Node");
+var util = require("util");
+var when = require('when');
 
 /**
  * Registers a node constructor
@@ -74,6 +76,14 @@ function removeNode(info) {
     return registry.removeNode(nodeInfo.id);
 }
 
+function loadMasterFlows(server) {
+    util.log("loadMasterFlows called");
+    return when.promise(function(resolve, reject, notify) {
+        // do the thing, then return the result in a param to resolve
+        resolve();
+    });
+}
+
 module.exports = {
     // Lifecycle
     init: init,
@@ -99,7 +109,8 @@ module.exports = {
     stopFlows: flows.stopFlows,
     setFlows: flows.setFlows,
     getFlows: flows.getFlows,
-    
+    loadMasterFlows: loadMasterFlows,   
+
     // Credentials
     addCredentials: credentials.add,
     getCredentials: credentials.get,
