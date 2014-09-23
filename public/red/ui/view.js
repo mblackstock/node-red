@@ -1084,6 +1084,12 @@ RED.view = (function() {
                             .attr("class","device-lasso");
 
                 var dbt = db.append('text').attr("x",5).attr("y",15).text(d.deviceId);
+                var dbresize = db.append('rect')
+                    .attr("class","dev-box-handle")
+                    .attr("x", d.w-20)
+                    .attr("y", d.h-20)
+                    .attr("width",20)
+                    .attr("height",20);
             });
 
             // connect mouse down to the boxes to select them
@@ -1097,7 +1103,8 @@ RED.view = (function() {
             // then draw the nodes
 
             // first delete any that have been removed from the model
-            var node = vis.selectAll(".nodegroup").data(RED.nodes.nodes.filter(function(d) { return d.z == activeWorkspace }),function(d){ return d.id});
+            var node = vis.selectAll(".nodegroup")
+                .data(RED.nodes.nodes.filter(function(d) { return d.z == activeWorkspace }),function(d){ return d.id});
             node.exit().remove();
 
             // add any that have been added

@@ -404,6 +404,10 @@ span.logo img {
    stroke: #ff7f0e;
 }
 
+.dev-box-handle {
+    fill: rgba(128,128,128,0.2);
+}
+
 .group-box {
     stroke-width: 1px;
     stroke: #aaaaaa;
