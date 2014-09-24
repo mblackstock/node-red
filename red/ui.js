@@ -18,6 +18,7 @@ var fs = require("fs");
 var app = express();
 var events = require("./events");
 var path = require("path");
+var cors = require('cors');
 
 var icon_paths = [path.resolve(__dirname + '/../public/icons')];
 
@@ -31,6 +32,9 @@ events.on("node-icon-dir",function(dir) {
 function setupUI(_settings) {
     
     settings = _settings; // TODO confirm if settings are needed
+
+    // so we can get flows from remote clients
+    app.use(cors(settings.appCorsOptions));
     
     // Need to ensure the url ends with a '/' so the static serving works
     // with relative paths
