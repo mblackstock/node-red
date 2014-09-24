@@ -20,6 +20,7 @@ var when = require("when");
 var typeRegistry = require("./registry");
 var credentials = require("./credentials");
 var events = require("../events");
+var log = require("../log");
 
 var storage = null;
 var settings = null;
