@@ -36,6 +36,9 @@ util.inherits(Node,EventEmitter);
 
 Node.prototype._on = Node.prototype.on;
 
+/**
+ * override listener registration if the event is 'close'
+ */
 Node.prototype.on = function(event,callback) {
     var node = this;
     if (event == "close") {

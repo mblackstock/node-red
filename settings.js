@@ -18,10 +18,13 @@ module.exports = {
     // this is the id of the local device for distributed flows
     deviceId: "mac",
 
+    // devices participating in a distributed flow
     devices: [{label:"Server", deviceId:"server"},
         {label:"Raspberry Pi", deviceId:"raspberry-pi"},
         {label:"Mac Laptop",deviceId:"mac"}
     ],
+
+    masterDevice: "http://master-server/",
 
     // the tcp port that the Node-RED web server is listening on
     uiPort: 1880,

@@ -13,6 +13,11 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  **/
+
+
+/**
+ * Module for managing the underlying model for NodeR-RED including tabs, nodes and config nodes
+ **/
 RED.nodes = (function() {
 
     var node_defs = {};     // map of node defs by type
@@ -22,6 +27,7 @@ RED.nodes = (function() {
     var defaultWorkspace;
     var workspaces = {};    // tabs
 
+    // device boxes on the display
     var deviceboxes = [];   // list of device boxes for display in the flow
     var defaultDeviceId;      // default device to use when none specified
 
@@ -168,6 +174,7 @@ RED.nodes = (function() {
     function getWorkspace(id) {
         return workspaces[id];
     }
+
     /**
      * remove the workspace on a tab change
      * return the removed links, etc.
@@ -315,7 +322,6 @@ RED.nodes = (function() {
         return nns;
     }
 
-
     /**
      * Import nodes from the backend into the client
      *
@@ -397,7 +403,6 @@ RED.nodes = (function() {
                 new_workspaces.push(defaultWorkspace);
             }
 
-
             // Add device boxes to the view
             for (i=0;i<newNodes.length;i++) {
                 n = newNodes[i];
@@ -405,7 +410,6 @@ RED.nodes = (function() {
                     addDeviceBox(n);
                 }
             }
-
 
             // set up default device
             defaultDeviceId = RED.settings.deviceId;
@@ -538,6 +542,7 @@ RED.nodes = (function() {
         id: getID,
         nodes: nodes, // TODO: exposed for d3 vis
         links: links,  // TODO: exposed for d3 vis
+        workspaces: workspaces,
         addDeviceBox: addDeviceBox,
         removeDeviceBox: removeDeviceBox,
         deviceboxes: deviceboxes    // exposed for vis

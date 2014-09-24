@@ -717,7 +717,7 @@ RED.view = (function() {
 
     /**
      * setDevices
-     * set the device_id of all of the selected devices, and add a device_box and device to the flow
+     * set the deviceId of all of the selected devices, and add a device_box and device to the flow
      */
     function setDeviceBox(lasso) {
 
@@ -747,8 +747,6 @@ RED.view = (function() {
             var n = moving_set[i];
 
             n.n.deviceId = currentDevice.deviceId;
-            // n.n.dirty = true;
-            // n.n.changed = true;
         }
         // TODO: when deleting a device_box, set the device to the local device id?
 
@@ -1037,7 +1035,7 @@ RED.view = (function() {
     }
 
     /**
-     * select the box
+     * select the device box
      */
     function devBoxMouseDown(d) {
 
@@ -1655,6 +1653,66 @@ RED.view = (function() {
         $( "#dialog" ).dialog("option","title","Import nodes").dialog( "open" );
     }
 
+    function showLoadMasterFlowDialog() {
+        $("#dialog-form").html($("script[data-template-name='import-master-flow-dialog']").html());
+        $("#node-input-url").val(RED.settings.masterDevice);
+        $( "#dialog" ).dialog({
+            title:"Import Master Flow",
+            buttons: 
+            {
+                "Get Master Flow": function() {
+                    var url = $( "#node-input-url" ).val();
+                    // ask the backend to get new flows from the remote server
+                    // when done reload it from the backend.
+
+                    // delete everything.
+                    //deleteFlows();
+
+                    // ask backend to get the master flow for us to avoid problems...
+                    $.getJSON(url+"/flows").done(function(nodes) {
+                        // delete the workspaces/tabs
+                        // make a copy of the tabs to delete
+                        var ws_remove = [];
+                        var workspaces = RED.nodes.workspaces;
+                        var i;
+                        for (i in workspaces) {
+                            ws_remove.push(workspaces[i]);
+                        }
+                        var new_ws_id = RED.nodes.id();
+
+                        // HACK: create a dummy workspace so we always have one around.
+                        var dummy_workspace = { type:"tab", id:new_ws_id, label:"dummy" };
+                        RED.nodes.addWorkspace(dummy_workspace);
+                        RED.view.addWorkspace(dummy_workspace);
+
+                        // delete all of the tabs
+                        for (i =0; i<ws_remove.length; i++) {
+
+                            RED.view.removeWorkspace(ws_remove[i]);
+                            RED.nodes.removeWorkspace(ws_remove[i].id);
+                        }
+                        // redraw everything
+                        RED.nodes.import(nodes);
+                        setDirty(true);
+                        redraw();
+
+                        // HACK, remove the dummy tab/workspace
+                        RED.view.removeWorkspace(dummy_workspace);
+                        RED.nodes.removeWorkspace(dummy_workspace.id);
+
+                    }).fail(function( jqxhr, textStatus, error ) {
+                        var err = textStatus + ", " + error;
+                        RED.notify("<strong>Request Failed: " + err,"error");
+                    });
+                    $( this ).dialog( "close" );
+                },
+                Cancel: function() {
+                    $( this ).dialog( "close" );
+                }
+            }
+        }).dialog( "open" );
+    }
+
     function showRenameWorkspaceDialog(id) {
         var ws = RED.nodes.workspace(id);
         $( "#node-dialog-rename-workspace" ).dialog("option","workspace",ws);
@@ -1798,6 +1856,7 @@ RED.view = (function() {
         showImportNodesDialog: showImportNodesDialog,
         showExportNodesDialog: showExportNodesDialog,
         showExportNodesLibraryDialog: showExportNodesLibraryDialog,
+        showLoadMasterFlowDialog: showLoadMasterFlowDialog,
         setCurrentDevice: setCurrentDevice
 
     };

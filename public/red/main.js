@@ -156,16 +156,24 @@ var RED = (function() {
             $(".palette-spinner").hide();
             $(".palette-scroll").show();
             $("#palette-search").show();
-            loadFlows("flows");
+            loadFlows();
         });
     }
 
-    function loadFlows(path) {
-        $.getJSON(path,function(nodes) {
+    /**
+     * load flows from the backend, then subscribe to backend notifications
+     **/
+    function loadFlows() {
+        $.getJSON("flows",function(nodes) {
             RED.nodes.import(nodes);
             RED.view.dirty(false);
             RED.view.redraw();
-            RED.comms.subscribe("status/#",function(topic,msg) {
+            subscribeToServer();
+        });
+    }
+
+    function subscribeToServer() {
+         RED.comms.subscribe("status/#",function(topic,msg) {
                 var parts = topic.split("/");
                 var node = RED.nodes.node(parts[1]);
                 if (node) {
@@ -176,7 +184,7 @@ var RED = (function() {
                     }
                 }
             });
-            RED.comms.subscribe("node/#",function(topic,msg) {
+        RED.comms.subscribe("node/#",function(topic,msg) {
                 var i;
                 if (topic == "node/added") {
                     for (i=0;i<msg.length;i++) {
@@ -198,7 +206,6 @@ var RED = (function() {
                     }
                 }
             });
-        });
     }
 
     var statusEnabled = false;
@@ -238,7 +245,7 @@ var RED = (function() {
                 {id:"btn-node-status",icon:"fa fa-info",label:"Node Status",toggle:true,onselect:toggleStatus},
                 null,
                 {id:"btn-import-menu",icon:"fa fa-sign-in",label:"Import...",options:[
-                    {id:"btn-import-library",icon:"fa fa-cloud",label:"Master Device",onselect:loadMasterFlows},
+                    {id:"btn-import-library",icon:"fa fa-cloud",label:"Master Device...",onselect:RED.view.showLoadMasterFlowDialog},
                     {id:"btn-import-clipboard",icon:"fa fa-clipboard",label:"Clipboard...",onselect:RED.view.showImportNodesDialog},
                     {id:"btn-import-library",icon:"fa fa-book",label:"Library",options:[]}
                 ]},

@@ -67,7 +67,8 @@ function setupUI(_settings) {
             httpNodeRoot: settings.httpNodeRoot,
             version: settings.version,
             deviceId: settings.deviceId,
-            devices: settings.devices
+            devices: settings.devices,
+            masterDevice: settings.masterDevice
         };
         res.json(safeSettings);
     });

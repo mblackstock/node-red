@@ -44,6 +44,7 @@ function createServer(_server,_settings) {
         res.json(redNodes.getFlows());
     });
 
+    // load the master flow from the masterDevice
     app.get("/load", function(req,res) {
         // get the flow from the master server
         redNodes.loadMasterFlows(settings.masterDevice).then(function() {
