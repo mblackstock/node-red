@@ -117,7 +117,8 @@ module.exports = {
     //     methods: "GET,PUT,POST,DELETE"
     // },
 
-    httpNodeCors: {
+    // for setting the application CORS options
+    appCorsOptions: {
         origin: "*",
         methods: "GET"
     },
