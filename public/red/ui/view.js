@@ -198,6 +198,9 @@ RED.view = (function() {
     // currently selected dev box
     var selected_devBox = null;
 
+    // master device for the distributed flows
+    var masterDeviceUrl = null;
+
     /**
      * set the current device the user selected to configure nodes
      **/
@@ -1655,20 +1658,21 @@ RED.view = (function() {
 
     function showLoadMasterFlowDialog() {
         $("#dialog-form").html($("script[data-template-name='import-master-flow-dialog']").html());
-        $("#node-input-url").val(RED.settings.masterDevice);
+        if (masterDeviceUrl == null) {
+            masterDeviceUrl = RED.settings.masterDevice;
+        }
+        $("#node-input-url").val(masterDeviceUrl);
         $( "#dialog" ).dialog({
             title:"Import Master Flow",
             buttons: 
             {
                 "Get Master Flow": function() {
                     var url = $( "#node-input-url" ).val();
-                    // ask the backend to get new flows from the remote server
-                    // when done reload it from the backend.
+                    
+                    // save it for next time
+                    masterDeviceUrl = url;
 
-                    // delete everything.
-                    //deleteFlows();
-
-                    // ask backend to get the master flow for us to avoid problems...
+                    // get the remote flow from the other server directly (assumes CORS enabled)
                     $.getJSON(url+"/flows").done(function(nodes) {
                         // delete the workspaces/tabs
                         // make a copy of the tabs to delete
@@ -1687,7 +1691,6 @@ RED.view = (function() {
 
                         // delete all of the tabs
                         for (i =0; i<ws_remove.length; i++) {
-
                             RED.view.removeWorkspace(ws_remove[i]);
                             RED.nodes.removeWorkspace(ws_remove[i].id);
                         }

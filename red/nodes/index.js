@@ -76,14 +76,6 @@ function removeNode(info) {
     return registry.removeNode(nodeInfo.id);
 }
 
-function loadMasterFlows(server) {
-    util.log("loadMasterFlows called");
-    return when.promise(function(resolve, reject, notify) {
-        // do the thing, then return the result in a param to resolve
-        resolve();
-    });
-}
-
 module.exports = {
     // Lifecycle
     init: init,
@@ -109,7 +101,6 @@ module.exports = {
     stopFlows: flows.stopFlows,
     setFlows: flows.setFlows,
     getFlows: flows.getFlows,
-    loadMasterFlows: loadMasterFlows,   
 
     // Credentials
     addCredentials: credentials.add,
