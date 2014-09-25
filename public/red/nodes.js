@@ -439,7 +439,7 @@ RED.nodes = (function() {
                             RED.nodes.add(configNode);
                         }
                     } else {
-                        var node = {x:n.x,y:n.y,z:n.z,type:0,wires:n.wires,changed:false};
+                        var node = {x:n.x,y:n.y,z:n.z,type:0,deviceId:n.deviceId,wires:n.wires,changed:false};
                         if (createNewIds) {
                             node.z = workspace_map[node.z];
                             if (!workspaces[node.z]) {
