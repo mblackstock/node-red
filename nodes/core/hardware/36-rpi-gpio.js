@@ -22,13 +22,14 @@ module.exports = function(RED) {
 
     var gpioCommand = '/usr/local/bin/gpio';
 
-    if (!fs.existsSync("/dev/ttyAMA0")) { // unlikely if not on a Pi
-        throw "Info : Ignoring Raspberry Pi specific node.";
-    }
+    // comment these checks out so that raspberry pi nodes appear even on servers
+    // if (!fs.existsSync("/dev/ttyAMA0")) { // unlikely if not on a Pi
+    //     throw "Info : Ignoring Raspberry Pi specific node.";
+    // }
 
-    if (!fs.existsSync(gpioCommand)) { // gpio command not installed
-        throw "Info : Can't find Raspberry Pi wiringPi gpio command.";
-    }
+    // if (!fs.existsSync(gpioCommand)) { // gpio command not installed
+    //     throw "Info : Can't find Raspberry Pi wiringPi gpio command.";
+    // }
 
     // Map physical P1 pins to Gordon's Wiring-Pi Pins (as they should be V1/V2 tolerant)
     var pintable = {
