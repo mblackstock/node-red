@@ -23,7 +23,7 @@ module.exports = function(RED) {
     var MQTT_PREFIX = "wire/";
 
     var MQTT_BROKER_CONFIG = {
-            "broker":"ec2-54-176-254-172.us-west-1.compute.amazonaws.com",
+            "broker":"ec2-54-176-148-165.us-west-1.compute.amazonaws.com",
             "port":1883,
             "clientid":"",
             "username":"",
