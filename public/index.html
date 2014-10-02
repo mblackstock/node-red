@@ -88,6 +88,7 @@
 <div id="dropTarget"><div>Drop the flow here<br/><i class="fa fa-download"></i></div></div>
 
 <div id="dialog" class="hide"><form id="dialog-form" class="form-horizontal"></form></div>
+<div id="import-dialog" class="hide"><form id="dialog-import-form" class="form-horizontal"></form></div>
 <div id="node-config-dialog" class="hide"><form id="dialog-config-form" class="form-horizontal"></form><div class="form-tips" id="node-config-dialog-user-count"></div></div>
 
 <div id="node-dialog-confirm-deploy" class="hide">
@@ -228,8 +229,11 @@
 </script>
 <script type="text/x-red" data-template-name="import-master-flow-dialog">
     <div class="form-row">
-        <label for="node-input-url" ><i class="fa fa-file"></i> Master Node Server URL:</label>
+        <label for="node-input-url" ><i class="fa fa-cloud"></i>Server URL:</label>
         <input type="text" id="node-input-url" placeholder="URL">
+        <div class="form-tips">
+        Enter the URL of the master flow server.
+        </div>
     </div>
 </script>
 

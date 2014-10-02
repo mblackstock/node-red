@@ -1657,13 +1657,14 @@ RED.view = (function() {
     }
 
     function showLoadMasterFlowDialog() {
-        $("#dialog-form").html($("script[data-template-name='import-master-flow-dialog']").html());
+        $("#dialog-import-form").html($("script[data-template-name='import-master-flow-dialog']").html());
         if (masterDeviceUrl == null) {
             masterDeviceUrl = RED.settings.masterDevice;
         }
         $("#node-input-url").val(masterDeviceUrl);
-        $( "#dialog" ).dialog({
+        $( "#import-dialog" ).dialog({
             title:"Import Master Flow",
+            width: 500,
             buttons: 
             {
                 "Get Master Flow": function() {
