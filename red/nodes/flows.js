@@ -74,6 +74,12 @@ function analyzeDistributedFlow(nodes) {
 
         // first check the external device node's outgoing wires to see if it is connected to a node
         // we are hosting. If so, we'll replace this node with an incoming wire node
+
+        /**
+            [current-node-placeholder]--->[target-node]
+
+            if target-node is on our device, replace current-node-placeholder with a 'wire in' node.
+        **/        
         util.log("[dist] checking outgoing wires of: "+nId+" on device: "+n.deviceId);
         for (i=0; i<n.wires.length; i++) {
             outWires = n.wires[i];
@@ -118,6 +124,13 @@ function analyzeDistributedFlow(nodes) {
 
         // Next check all nodes to see if they have a wire connected to this placeholder
         // from an external device.  If so, we cannot delete it and need a wire
+
+        /**
+            [src-node]----->[current-node-placeholder]
+
+            if src-node is on our device, then we need a wire out node to connect it to
+            current-node-placeholder on another device
+        **/   
         util.log("[dist] checking for wires into "+nId);
         for (srcId in nodes) {
             srcN = nodes[srcId];
@@ -133,7 +146,7 @@ function analyzeDistributedFlow(nodes) {
 
             util.log("[dist] src "+srcN.id );
 
-            // devices are different, check if src connected to placeholder
+            // devices are different, check if src connected
             for (i=0; i<srcN.wires.length; i++) {
                 outWires = srcN.wires[i];
                 for (j=0; j<outWires.length; j++) {
@@ -156,15 +169,15 @@ function analyzeDistributedFlow(nodes) {
             }
         }
     
-        // we're not connected so delete the node - its an internal node, or not connected to anything.
+        // this device is not connected to the placeholder so delete the node
+        // - its an internal node, or not connected to anything on another device
         if (!replaced) {
             util.log("[dist] deleting inner node: "+nId);
             deleteList.push(nId);
         }
     }
 
-    // now update the nodes
-
+    // now update the nodes, deleting placeholders, and replacing them with wires
 
     // first deleting ones we no longer need - they are isolated on another device
     for (i=0; i<deleteList.length; i++) {
