@@ -42,7 +42,9 @@ events.on('type-registered',function(type) {
         }
 });
 
-
+/**
+ * Analyze node list and replace placeholder nodes with wire nodes where needed.
+ */
 function analyzeDistributedFlow(nodes) {
     'use strict';
     var replaced = false;
@@ -54,9 +56,9 @@ function analyzeDistributedFlow(nodes) {
     var i,j;        // loop counters
     var srcId;      // id of source node
     var srcN;       // source node
-    var wireInList = [];
-    var wireOutList = [];
-    var deleteList = [];
+    var wireInList = []; // list of input wires
+    var wireOutList = []; // list of output wires
+    var deleteList = []; // nodes to delete
     var topic;      // topic for in or out node
 
     util.log('[dist] analyzing all flows for distributed nodes')
@@ -70,10 +72,9 @@ function analyzeDistributedFlow(nodes) {
         // a - its connected to another node
         // b - an incoming or outgoing connection is on another device
 
-        // first check the external device's node outgoing wires to see if it is connected to a node we are hosting.
-        // if so, we'll need to replace this node with an incoming MQTT node
-        util.log("[dist] checking outgoing wires of: "+nId);
-
+        // first check the external device node's outgoing wires to see if it is connected to a node
+        // we are hosting. If so, we'll replace this node with an incoming wire node
+        util.log("[dist] checking outgoing wires of: "+nId+" on device: "+n.deviceId);
         for (i=0; i<n.wires.length; i++) {
             outWires = n.wires[i];
             for (j=0; j<outWires.length; j++) {
@@ -86,8 +87,10 @@ function analyzeDistributedFlow(nodes) {
                 util.log("[dist] node id:"+n.deviceId+" target device id:"+targetDeviceId);
 
                 // same device, we don't replace it
-                if (targetDeviceId == n.deviceId)  continue;
-
+                if (targetDeviceId == n.deviceId) {
+                    util.log("[dist] same deviceId ("+targetDeviceId+") skipping");
+                    continue;
+                }
                 // replace node with incoming MQTT node
                 nt = typeRegistry.get("wire in");
                 try {
@@ -101,10 +104,12 @@ function analyzeDistributedFlow(nodes) {
             }
         }
 
+        // FIXME: what if the placeholder is connected to multiple nodes on this device?
+
         if (replaced)
             continue;   // get the next placeholder node
 
-        // so check all nodes to see if they have a wire connected to this placeholder
+        // Next check all nodes to see if they have a wire connected to this placeholder
         // from an external device.  If so, we cannot delete it and need a wire
         util.log("[dist] checking for wires into "+nId)
         for (srcId in nodes) {
@@ -147,12 +152,17 @@ function analyzeDistributedFlow(nodes) {
         }
     }
 
-    // now update the nodes, first deleting
+    // now update the nodes
+
+
+    // first deleting ones we no longer need - they are isolated on another device
     for (i=0; i<deleteList.length; i++) {
         nId = deleteList[i];
         util.log('[dist] deleting node '+nId);
         delete nodes[nId];
     }
+
+    // replace placeholder nodes with wire in nodes
     nt = typeRegistry.get("wire out");
     for (i=0; i<wireOutList.length; i++) {
         nId = wireOutList[i].node;
@@ -165,6 +175,7 @@ function analyzeDistributedFlow(nodes) {
         nodes[nId] = nn;
     }
 
+    // replace placeholder nodes with wireout nodes
     nt = typeRegistry.get("wire in");
     for (i=0; i<wireInList.length; i++) {
         nId = wireInList[i].node;
@@ -176,6 +187,8 @@ function analyzeDistributedFlow(nodes) {
         nn = new nt({"id":n.id, "topic":topic, "deviceId":n.deviceId, "wires":n.wires});
         nodes[nId] = nn;
     }
+
+    util.log('[dist] ==== distributed flow completed.')
 }
 
 /**
@@ -186,10 +199,14 @@ function parseConfig() {
     var j;
     var nt;
     missingTypes = [];
-    
+
+
+    util.log('[dist] ==== start flow parsing.')
+ 
     // Scan the configuration for any unknown node types
     for (i=0;i<activeConfig.length;i++) {
         var type = activeConfig[i].type;
+
         // TODO: remove workspace in next release+1
         if (type != "workspace" && type != "tab" && type != "devicebox") {
             nt = typeRegistry.get(type);
@@ -214,15 +231,15 @@ function parseConfig() {
     for (i=0;i<activeConfig.length;i++) {
         var nn = null;
         // TODO: remove workspace in next release+1
-        if (activeConfig[i].type != "workspace" && activeConfig[i].type != "tab") {
+        if (activeConfig[i].type != "workspace" && activeConfig[i].type != "tab" && activeConfig[i].type != "devicebox") {
             
             // what device and node type
             var nodeDeviceId = activeConfig[i].deviceId || settings.deviceId;
             var nodeType = activeConfig[i].type;
 
-            util.log("creating node "+activeConfig[i].id+":"+activeConfig[i].name+':'+nodeDeviceId);
+            util.log("creating node "+activeConfig[i].id+':'+nodeDeviceId);
 
-            // create a placeholder node if the node is on another device
+            // create a 'noop' placeholder node if the node is on another device
             if (nodeDeviceId != settings.deviceId) {
                 util.log("[dist] adding placeholder node for "+activeConfig[i].id+" on device "+nodeDeviceId);
                 // create a placeholder for the external node
@@ -246,6 +263,7 @@ function parseConfig() {
         }
     }
 
+    // analyze flow and add wire nodes where needed.
     analyzeDistributedFlow(nodes);
 
     // Clean up any orphaned credentials
