@@ -86,11 +86,18 @@ function analyzeDistributedFlow(nodes) {
 
                 util.log("[dist] node id:"+n.deviceId+" target device id:"+targetDeviceId);
 
+                // target is not us, don't replace it
+                if (targetDeviceId != settings.deviceId) {
+                    util.log("[dist] target is not us ("+targetDeviceId+") skipping");
+                    continue;
+                }
+
                 // same device, we don't replace it
                 if (targetDeviceId == n.deviceId) {
                     util.log("[dist] same deviceId ("+targetDeviceId+") skipping");
                     continue;
                 }
+
                 // replace node with incoming MQTT node
                 nt = typeRegistry.get("wire in");
                 try {
@@ -111,14 +118,17 @@ function analyzeDistributedFlow(nodes) {
 
         // Next check all nodes to see if they have a wire connected to this placeholder
         // from an external device.  If so, we cannot delete it and need a wire
-        util.log("[dist] checking for wires into "+nId)
+        util.log("[dist] checking for wires into "+nId);
         for (srcId in nodes) {
             srcN = nodes[srcId];
             if (srcN.id == n.id) continue;
             if (srcN.wires.length == 0) continue;
 
-            // source and destination on same id, so we can delete it
             srcDeviceId = srcN.deviceId || settings.deviceId;
+            
+            // the source is not us, so we don't care
+            if (srcDeviceId != settings.deviceId) continue;
+            // source and destination on same id, so we can delete it
             if (srcDeviceId == n.deviceId) continue;
 
             util.log("[dist] src "+srcN.id );
@@ -127,7 +137,8 @@ function analyzeDistributedFlow(nodes) {
             for (i=0; i<srcN.wires.length; i++) {
                 outWires = srcN.wires[i];
                 for (j=0; j<outWires.length; j++) {
-                    targetId = outWires[j];      
+                    targetId = outWires[j];
+
                     if (targetId != n.id) continue;
 
                     util.log("[dist] src "+srcN.id+' is connected to '+n.id);
