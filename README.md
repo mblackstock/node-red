@@ -17,7 +17,7 @@ For more information, see our presentation at WoT 2014.  Watch this space for mo
 
 Check out [INSTALL](INSTALL.md) for full instructions on getting started.
 
-1. download the zip and unzip, or git clone
+1. git clone
 2. cd node-red
 3. npm install
 4. node red.js
