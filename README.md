@@ -9,9 +9,9 @@ It adds the following functionality:
 * mechanism for downloading the distributed flow from a 'master' device such as a cloud server.
 * during the parsing and configuration process, replace wires to nodes on other devices with connection to an MQTT server.
 
-For more information, see our presentation at WoT 2014.
+For more information, see our presentation at WoT 2014.  Watch this space for more information on how to configure and run the system.  In the meantime, feel free to contact mike at sensetecnic.com for more info.
 
-The rest of this documentation is from the Node-RED README.
+(The rest of this documentation is from the Node-RED README.)
 
 ## Quick Start
 
