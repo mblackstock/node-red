@@ -1,6 +1,6 @@
 # WoT-Flow: a distributed Node-RED
 
-Node-RED is a visual tool for wiring the Internet of Things.  WoTFlow extends Node-RED to support distributed flows in a simple way.  This code is work in progress.
+Node-RED is a visual tool for wiring the Internet of Things.  WoT-Flow extends Node-RED to support flows that can be distributed between devices in a simple way.  This code is work in progress.
 
 It adds the following functionality:
 * settings to specify the devices participating in a flow, e.g. server, desktop, raspberry-pi
