@@ -1675,7 +1675,8 @@ RED.view = (function() {
 
                     // get the remote flow from the other server directly (assumes CORS enabled)
                     $.getJSON(url+"/flows").done(function(nodes) {
-                        // delete the workspaces/tabs
+
+                        // delete all of the current workspaces/tabs
                         // make a copy of the tabs to delete
                         var ws_remove = [];
                         var workspaces = RED.nodes.workspaces;
@@ -1686,16 +1687,19 @@ RED.view = (function() {
                         var new_ws_id = RED.nodes.id();
 
                         // HACK: create a dummy workspace so we always have one around.
+                        // not sure why this is needed, but it is
                         var dummy_workspace = { type:"tab", id:new_ws_id, label:"dummy" };
                         RED.nodes.addWorkspace(dummy_workspace);
                         RED.view.addWorkspace(dummy_workspace);
 
-                        // delete all of the tabs
+                        // delete all of the current tabs
                         for (i =0; i<ws_remove.length; i++) {
                             RED.view.removeWorkspace(ws_remove[i]);
                             RED.nodes.removeWorkspace(ws_remove[i].id);
                         }
+
                         // redraw everything
+                        // Should we do this after we remove the dummy?
                         RED.nodes.import(nodes);
                         setDirty(true);
                         redraw();
