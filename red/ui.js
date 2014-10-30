@@ -1,5 +1,5 @@
 /**
- * Copyright 2013 IBM Corp.
+ * Copyright 2013, 2014 IBM Corp.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -15,7 +15,6 @@
  **/
 var express = require('express');
 var fs = require("fs");
-var app = express();
 var events = require("./events");
 var path = require("path");
 var cors = require('cors');
@@ -25,11 +24,11 @@ var icon_paths = [path.resolve(__dirname + '/../public/icons')];
 var settings; // settings has to be global, otherwise variable not in scope for express
 
 events.on("node-icon-dir",function(dir) {
-        icon_paths.push(path.resolve(dir));
+    icon_paths.push(path.resolve(dir));
 });
 
 
-function setupUI(_settings) {
+function setupUI(_settings,app) {
     
     settings = _settings; // TODO confirm if settings are needed
 

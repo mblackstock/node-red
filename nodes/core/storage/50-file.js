@@ -35,21 +35,23 @@ module.exports = function(RED) {
                 });
             } else if (typeof msg.payload != "undefined") {
                 var data = msg.payload;
-                if (typeof data == "object") {
+                if (typeof data === "object") {
                     if (!Buffer.isBuffer(data)) {
                         data = JSON.stringify(data);
                     }
                 }
-                if (typeof data == "boolean") { data = data.toString(); }
+                if (typeof data === "boolean") { data = data.toString(); }
                 if ((this.appendNewline)&&(!Buffer.isBuffer(data))) { data += "\n"; }
                 if (this.overwriteFile) {
-                    fs.writeFile(filename, data, function (err) {
+                    // using "binary" not {encoding:"binary"} to be 0.8 compatible for a while
+                    fs.writeFile(filename, data, "binary", function (err) {
                         if (err) { node.warn('Failed to write to file : '+err); }
                         //console.log('Message written to file',filename);
                     });
                 }
                 else {
-                    fs.appendFile(filename, data, function (err) {
+                    // using "binary" not {encoding:"binary"} to be 0.8 compatible for a while
+                    fs.appendFile(filename, data, "binary", function (err) {
                         if (err) { node.warn('Failed to append to file : '+err); }
                         //console.log('Message appended to file',filename);
                     });
@@ -74,13 +76,15 @@ module.exports = function(RED) {
             if (filename === "") {
                 node.warn('No filename specified');
             } else {
+                msg.filename = filename;
                 fs.readFile(filename,options,function(err,data) {
                     if (err) {
                         node.warn(err);
                         msg.error = err;
+                        delete msg.payload;
                     } else {
-                        msg.filename = filename;
                         msg.payload = data;
+                        delete msg.error;
                     }
                     node.send(msg);
                 });
