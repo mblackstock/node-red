@@ -145,10 +145,10 @@ var RED = (function() {
         $.get('settings', function(data) {
             RED.settings = data;
             console.log("Node-RED: "+data.version);
-            loadDeviceList();
+            loadDeviceList(RED.settings);
         });
     }
-	function loadDeviceList() {
+	function loadDeviceList(settings) {
            var defaultDevice = settings.deviceId;
             var i;
             var dev;

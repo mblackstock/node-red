@@ -427,7 +427,7 @@ RED.nodes = (function() {
             for (i=0;i<newNodes.length;i++) {
                 n = newNodes[i];
                 // TODO: remove workspace in next release+1
-                if (n.type != "workspace" && n.type != "tab" && !getType(n.type)) {
+                if (n.type != "workspace" && n.type != "devicebox" && n.type != "tab" && !registry.getNodeType(n.type)) {
                     // TODO: get this UI thing out of here! (see below as well)
                     n.name = n.type;
                     n.type = "unknown";
@@ -500,8 +500,8 @@ RED.nodes = (function() {
                 n = newNodes[i];
 
                 // TODO: remove workspace in next release+1
-                if (n.type !== "workspace" && n.type !== "tab") {
-                    var def = getType(n.type);
+                if (n.type !== "workspace" && n.type !== "tab" && n.type !== "devicebox") {
+                    var def = registry.getNodeType(n.type);
                     if (def && def.category == "config") {
                         if (!RED.nodes.node(n.id)) {
                             var configNode = {id:n.id,type:n.type,users:[]};
