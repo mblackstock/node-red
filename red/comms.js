@@ -93,6 +93,13 @@ function stop() {
     }
 }
 
+/**
+ * publish data to subscribers.
+ * 
+ * @param {string} topic to publish to
+ * @param {Object} data to publish
+ * @param {boolean} retain true when we need to keep the last message for new subscribers
+ */
 function publish(topic,data,retain) {
     if (retain) {
         retained[topic] = data;
@@ -105,6 +112,13 @@ function publish(topic,data,retain) {
     });
 }
 
+/**
+ * send data to the specified connection
+ *
+ * @param {WebSocket} ws client websocket created when client connected
+ * @param {string} topic
+ * @param {Object} data to send
+ */
 function publishTo(ws,topic,data) {
     var msg = JSON.stringify({topic:topic,data:data});
     try {
@@ -114,7 +128,14 @@ function publishTo(ws,topic,data) {
     }
 }
 
+/**
+ * handle remote subscription to a topic by sending any retained data
+ * to the new subscriber
+ * @param {WebSocket} ws client websocket
+ * @param {string} topic
+ */
 function handleRemoteSubscription(ws,topic) {
+    // escape topic characters used in regular expressions and make into a regex check
     var re = new RegExp("^"+topic.replace(/([\[\]\?\(\)\\\\$\^\*\.|])/g,"\\$1").replace(/\+/g,"[^/]+").replace(/\/#$/,"(\/.*)?")+"$");
     for (var t in retained) {
         if (re.test(t)) {
