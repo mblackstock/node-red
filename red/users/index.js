@@ -29,6 +29,9 @@ var userModuleInterface = {
     },
     authenticate: function(username, password) {
         return userModule.authenticate(username, password);
+    },
+    getUser: function(username) {
+        return userModule.getUser(username);
     }
 };
 

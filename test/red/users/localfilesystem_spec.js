@@ -8,7 +8,7 @@ var hash = bcrypt.hashSync('aMUSEment2', salt);
 
 var localfilesystem = require("../../../red/users/localfilesystem");
 
-var testUserMap = {"mike":{"password":hash}};
+var testUserMap = {"mike":{"password":hash, "fullName":"Mike Blackstock"}};
 
 describe('red/users/localfilesystem', function() {
     var userDir = path.join(__dirname,".testUserHome");
@@ -66,4 +66,29 @@ describe('red/users/localfilesystem', function() {
         });
     });
 
+    it('should get user that exists',function(done) {
+        localfilesystem.init({userDir:userDir, userFile:'testUserFile.json'}).then(function() {
+            localfilesystem.getUser('mike').then(function(user) {
+                user.fullName.should.eql("Mike Blackstock");
+                done();
+            }).otherwise(function(err) {
+                done(err);
+            });
+        }).otherwise(function(err) {
+             done(err);
+        });
+    });
+
+    it('should not get user that doesnt exist',function(done) {
+        localfilesystem.init({userDir:userDir, userFile:'testUserFile.json'}).then(function() {
+            localfilesystem.getUser('fred').then(function(user) {
+                user.fullName.should.eql("Fred Flintstone");
+                should.fail("fred doesn't exist");
+            }).otherwise(function(err) {
+                done(err);
+            });
+        }).catch(function(e) {
+             done(err);
+        });
+    });
 });

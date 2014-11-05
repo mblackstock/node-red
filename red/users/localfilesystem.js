@@ -73,6 +73,17 @@ var localfilesystem = {
                 }
             });
         });
+    },
+
+    getUser: function(username) {
+        return when.promise(function(resolve, reject, notify) {
+            loadUsers().then(function(data) {
+                if (username in data) {
+                    resolve(data[username]);
+                }
+                reject();
+            });
+        });
     }
 };
 
