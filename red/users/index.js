@@ -1,5 +1,7 @@
 var when = require('when');
 
+var userModule;
+
 function moduleSelector(aSettings) {
     var toReturn;
     if (aSettings.userModule) {
@@ -15,17 +17,20 @@ function moduleSelector(aSettings) {
     return toReturn;
 }
 
-
 var userModuleInterface = {
     init: function(settings) {
         try {
             userModule = moduleSelector(settings);
-            // ensure we have an authenticate method at least
-            authenticateAvailable = userModule.hasOwnMethod("authenticate");
+            // ensure we have an authenticate method at least, throws an error otherwise
+            authenticateAvailable = userModule.hasOwnProperty("authenticate");
         } catch (e) {
+            // bad module - no authenticate
             return when.reject(e);
         }
         return userModule.init(settings);
+    },
+    addUser: function(userinfo) {
+        return userModule.addUser(userinfo);
     },
     authenticate: function(username, password) {
         return userModule.authenticate(username, password);

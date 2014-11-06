@@ -30,7 +30,6 @@ describe('red/users/localfilesystem', function() {
 
         localfilesystem.init({userDir:userDir, userFile:'testUserFile.json'}).then(function() {
             localfilesystem.getUserMap().then(function(data) {
-                console.log(data);
                 done();
             }).otherwise(function(err) {
                 done(err);
@@ -69,6 +68,7 @@ describe('red/users/localfilesystem', function() {
     it('should get user that exists',function(done) {
         localfilesystem.init({userDir:userDir, userFile:'testUserFile.json'}).then(function() {
             localfilesystem.getUser('mike').then(function(user) {
+                console.log(user);
                 user.fullName.should.eql("Mike Blackstock");
                 done();
             }).otherwise(function(err) {

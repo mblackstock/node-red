@@ -4,12 +4,15 @@ var settings = require('./proxy-settings');
 var proxy = require('./red/proxy');
 var util = require('util');
 var express = require('express');
+var path = require('path');
 
 // settings needed for the rest of the system
 
 settings.uiPort = settings.uiPort||1880;
 settings.uiHost = settings.uiHost||"0.0.0.0";
 settings.httpNodeRoot = settings.httpNodeRoot||"/";
+
+process.env.NODE_RED_HOME = process.env.NODE_RED_HOME || path.resolve(__dirname);
 
 var app = express();
 

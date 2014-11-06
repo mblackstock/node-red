@@ -140,10 +140,12 @@ var RED = (function() {
                 }
             ]
     });
-
     function loadSettings() {
         $.get('settings', function(data) {
             RED.settings = data;
+            if (data.loggedIn == false) {
+                window.location.replace('/login.html');
+            }
             console.log("Node-RED: "+data.version);
             loadDeviceList(RED.settings);
         });
@@ -335,7 +337,8 @@ var RED = (function() {
                 ]},
                 null,
                 {id:"btn-keyboard-shortcuts",icon:"fa fa-keyboard-o",label:"Keyboard Shortcuts",onselect:showHelp},
-                {id:"btn-help",icon:"fa fa-question",label:"Help...", href:"http://nodered.org/docs"}
+                {id:"btn-help",icon:"fa fa-question",label:"Help...", href:"http://nodered.org/docs"},
+                {id:"btn-logout",icon:"fa fa-sign-out",label:"Log out", href:"/logout"}
             ]
         });
 

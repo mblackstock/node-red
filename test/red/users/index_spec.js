@@ -5,7 +5,7 @@ describe("red/storage/index", function() {
     it('rejects the promise when settings suggest loading a bad module', function(done) {
         
         var wrongModule = {
-                storageModule : "thisaintloading"
+                userModule : "thisaintloading"
         };
         
         var storage = require("../../../red/users/index");

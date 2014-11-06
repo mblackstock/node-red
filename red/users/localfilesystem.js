@@ -38,6 +38,8 @@ function loadUsers() {
     });
 }
 
+// TODO: save file map with new users
+
 var localfilesystem = {
 
     init: function(_settings) {
@@ -46,25 +48,35 @@ var localfilesystem = {
         userDir = settings.userDir || process.env.NODE_RED_HOME;
 
         userFile = settings.userFile || 'users_'+require('os').hostname()+'.json';
-        console.log(userFile);
-
         usersFullPath = path.join(userDir,userFile);
         return when.promise(function(resolve, reject, notify) {resolve();});
     },
 
-    getUserMap: function() {
+    addUser: function(userinfo) {
         return when.promise(function(resolve, reject, notify) {
             loadUsers().then(function(data) {
-                resolve(data);
+                var salt = bcrypt.genSaltSync(10);
+                var hash = bcrypt.hashSync(userinfo.password, salt);
+                var newuser = {fullName:userinfo.fullName,password:hash};
+                data[userinfo.username] = newuser;
+                resolve(userinfo);
+            });
+        });
+    },
+
+    getUserMap: function() {
+        return when.promise(function(resolve, reject, notify) {
+            loadUsers().then(function(umap) {
+                resolve(umap);
             });
         });
     },
 
     authenticate: function(user, password, callback) {
         return when.promise(function(resolve, reject, notify) {
-            loadUsers().then(function(data) {
-                if (user in data) {
-                    userinfo = data[user];
+            loadUsers().then(function(umap) {
+                if (user in umap) {
+                    var userinfo = umap[user];
                     bcrypt.compare(password, userinfo.password, function(err, res) {
                         resolve(res);
                     });
@@ -77,9 +89,13 @@ var localfilesystem = {
 
     getUser: function(username) {
         return when.promise(function(resolve, reject, notify) {
-            loadUsers().then(function(data) {
-                if (username in data) {
-                    resolve(data[username]);
+            loadUsers().then(function(umap) {
+                if (username in umap) {
+                    var safeuser = {
+                        username:username,
+                        fullName:umap[username].fullName
+                    }
+                    resolve(safeuser);
                 }
                 reject();
             });

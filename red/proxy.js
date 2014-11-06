@@ -21,6 +21,7 @@
 var express = require('express');
 var path = require('path');
 var when = require('when');
+var users = require('./users');
 
 var settings = null;
 var server = null;
@@ -36,7 +37,13 @@ function init(_server, _settings) {
     server = _server;
     settings = _settings;
 
+    users.init(_settings).then(function() {
+        // add a super user for testing
+        users.addUser({username:"mike", password:"aMUSEment2", fullName:"Mike Blackstock"});
+    });
+
     app = express();
+    app.use(express.session({secret:"dnr secret"}));
 
     app.get("/flows",function(req,res) {
 
@@ -92,8 +99,46 @@ function init(_server, _settings) {
         // forward request and response
     });
 
+    // simple login
 
-    // ui related - icons
+    /**
+     * middleware function to check whether user is authenticated yet
+     */
+    function checkAuth(req, res, next) {
+        if (!req.session.username) {
+            //res.send('You are not authorized to view this page');
+            res.redirect('/login.html');
+        } else {
+            next();
+        }
+    }
+
+    /**
+     * handle login
+     */
+    app.post('/login', express.urlencoded(), function (req, res) {
+      var post = req.body;
+      users.authenticate(post.username, post.password).then(function(auth) {
+        if (auth===true) {
+            req.session.username = post.username;
+        } else {
+            // try again
+            res.redirect('/login.html');
+            return;
+        }  
+        res.redirect('/');
+      });
+    });
+
+    /**
+     * handle logout.
+     */
+    app.get('/logout', function (req, res) {
+        delete req.session.username;
+        res.redirect('/login.html');
+    });      
+
+    // ui related
 
     // Need to ensure the url ends with a '/' so the static serving works
     // with relative paths
@@ -131,19 +176,31 @@ function init(_server, _settings) {
     });
     
     // get settings - no need to contact node red instance
+    // this is to check for login as well!
     app.get("/settings", function(req,res) {
-        console.log('get settings');
 
-        var safeSettings = {
-            httpNodeRoot: settings.httpNodeRoot,
-            version: settings.version,
-            deviceId: settings.deviceId,
-            devices: settings.devices,
-            masterDevice: settings.masterDevice
-        };
-        res.json(safeSettings);
+        // Once the UI is up, it starts by getting settings.  If we are not
+        // logged in, the UI will redirect us to the login page.
+        // TODO: check sessions in the other AJAX calls.
+        if (!req.session.username) {
+            res.json({loggedIn:false});
+        }
+        users.getUser(req.session.username).then(function(userinfo){
+            var safeSettings = {
+                loggedIn: true,
+                user:userinfo,
+                httpNodeRoot: settings.httpNodeRoot,
+                version: settings.version,
+                deviceId: settings.deviceId,
+                devices: settings.devices,
+                masterDevice: settings.masterDevice
+            };
+            res.json(safeSettings);
+        });
     });
-    
+
+    // for testing
+    app.use("/index.html",checkAuth);
     app.use("/",express.static(__dirname + '/../public'));
  
 }
