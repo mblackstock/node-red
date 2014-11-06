@@ -37,16 +37,21 @@ function init(_server, _settings) {
     server = _server;
     settings = _settings;
 
+    // set up our user database
     users.init(_settings).then(function() {
-        // add a super user for testing
+        // add a user for testing
         users.addUser({username:"mike", password:"aMUSEment2", fullName:"Mike Blackstock"});
+        users.addUser({username:"fred", password:"bedrock", fullName:"Fred Flintstone"});
     });
+
+    // TODO: spin up the instances of node red, or make sure they are still running?
+
+
 
     app = express();
     app.use(express.session({secret:"dnr secret"}));
 
-    app.get("/flows",function(req,res) {
-
+    app.get("/flows", function(req,res) {
         console.log('get flows');
 
     });
@@ -59,8 +64,9 @@ function init(_server, _settings) {
         // forward request and response
     });
             
-    app.get("/nodes",function(req,res) {
+    app.get("/nodes", getUser, function(req,res) {
         console.log('get nodes');
+        console.log(req.user);
 
         // get user info
         // look up node red instance
@@ -98,6 +104,21 @@ function init(_server, _settings) {
         // look up node red instance
         // forward request and response
     });
+
+    /**
+     * add user to request
+     */
+    function getUser(req, res, next) {
+        if (!req.session.username) {
+            next(new Error('user is not logged in'));
+        } else {
+            // hang the user info from the request since we need it every time
+            users.getUser(req.session.username).then(function(userinfo) {
+                req.user = userinfo;
+                next();
+            });
+        }
+    }
 
     // simple login
 
