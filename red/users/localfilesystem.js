@@ -44,62 +44,48 @@ var localfilesystem = {
 
     init: function(_settings) {
         settings = _settings;
-
         userDir = settings.userDir || process.env.NODE_RED_HOME;
-
         userFile = settings.userFile || 'users_'+require('os').hostname()+'.json';
         usersFullPath = path.join(userDir,userFile);
-        return when.promise(function(resolve, reject, notify) {resolve();});
+        return loadUsers();
     },
 
     addUser: function(userinfo) {
-        return when.promise(function(resolve, reject, notify) {
-            loadUsers().then(function(data) {
-                var salt = bcrypt.genSaltSync(10);
-                var hash = bcrypt.hashSync(userinfo.password, salt);
-                var newuser = {fullName:userinfo.fullName,password:hash};
-                data[userinfo.username] = newuser;
-                resolve(userinfo);
-            });
-        });
+        var salt = bcrypt.genSaltSync(10);
+        var hash = bcrypt.hashSync(userinfo.password, salt);
+        var newuser = {fullName:userinfo.fullName,password:hash};
+        usermap[userinfo.username] = newuser;
+        return when(newuser);
     },
 
     getUserMap: function() {
-        return when.promise(function(resolve, reject, notify) {
-            loadUsers().then(function(umap) {
-                resolve(umap);
-            });
-        });
+        return when(usermap);
     },
 
-    authenticate: function(user, password, callback) {
+    authenticate: function(user, password) {
         return when.promise(function(resolve, reject, notify) {
-            loadUsers().then(function(umap) {
-                if (user in umap) {
-                    var userinfo = umap[user];
-                    bcrypt.compare(password, userinfo.password, function(err, res) {
-                        resolve(res);
-                    });
-                } else {
-                    resolve(false);
-                }
-            });
+            if (user in usermap) {
+                var userinfo = usermap[user];
+                bcrypt.compare(password, userinfo.password, function(err, res) {
+                    resolve(res);
+                });
+            } else {
+                resolve(false);
+            }
         });
     },
 
     getUser: function(username) {
-        return when.promise(function(resolve, reject, notify) {
-            loadUsers().then(function(umap) {
-                if (username in umap) {
-                    var safeuser = {
-                        username:username,
-                        fullName:umap[username].fullName
-                    }
-                    resolve(safeuser);
-                }
-                reject();
-            });
-        });
+        var safeuser;
+        if (username in usermap) {
+            safeuser = {
+                username:username,
+                fullName:usermap[username].fullName
+            }
+        } else {
+            return when.reject(new Error('no such user')); 
+        }
+        return when(safeuser);
     }
 };
 

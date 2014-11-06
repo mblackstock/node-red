@@ -27,68 +27,65 @@ describe('red/users/localfilesystem', function() {
     });
 
     it('should load user db',function(done) {
+        return localfilesystem.init({userDir:userDir, userFile:'testUserFile.json'}).then(function() {
+            return localfilesystem.getUserMap();
+        }).then(function(data) {
+            data.mike.fullName.should.eql('Mike Blackstock');
+            done();
+        }).catch(function(err){
+            done(err);
+        });
+    });
 
+    it('should add new user', function(done) {
         localfilesystem.init({userDir:userDir, userFile:'testUserFile.json'}).then(function() {
-            localfilesystem.getUserMap().then(function(data) {
-                done();
-            }).otherwise(function(err) {
-                done(err);
-            });
+            return localfilesystem.addUser({username:'betty', fullName:'Betty Rubble', password:'bedrock'});
+        }).then(function(data) {
+            return localfilesystem.authenticate('betty','bedrock');
+        }).then(function(auth){
+            auth.should.eql(true);
+            done();
         }).otherwise(function(err) {
-             done(err);
+            done(err);
         });
     });
 
     it('should authenticate valid user',function(done) {
         localfilesystem.init({userDir:userDir, userFile:'testUserFile.json'}).then(function() {
-            localfilesystem.authenticate('mike','aMUSEment2').then(function(valid) {
-                valid.should.eql(true);
-                done();
-            }).otherwise(function(err) {
-                done(err);
-            });
-        }).otherwise(function(err) {
-             done(err);
+            return localfilesystem.authenticate('mike','aMUSEment2');
+        }).then(function(valid) {
+            valid.should.eql(true);
+            done();
         });
     });
 
     it('should not authenticate invalid user',function(done) {
         localfilesystem.init({userDir:userDir, userFile:'testUserFile.json'}).then(function() {
-            localfilesystem.authenticate('bob','aMUSEment2').then(function(valid) {
-                valid.should.eql(false);
-                done();
-            }).otherwise(function(err) {
-                done(err);
-            });
-        }).otherwise(function(err) {
-             done(err);
+            return localfilesystem.authenticate('bob','aMUSEment2');
+        }).then(function(valid) {
+            valid.should.eql(false);
+            done();
         });
     });
 
     it('should get user that exists',function(done) {
         localfilesystem.init({userDir:userDir, userFile:'testUserFile.json'}).then(function() {
-            localfilesystem.getUser('mike').then(function(user) {
-                console.log(user);
-                user.fullName.should.eql("Mike Blackstock");
-                done();
-            }).otherwise(function(err) {
-                done(err);
-            });
-        }).otherwise(function(err) {
-             done(err);
+            return localfilesystem.getUser('mike');
+        }).then(function(user) {
+            user.fullName.should.eql("Mike Blackstock");
+            done();
         });
     });
 
     it('should not get user that doesnt exist',function(done) {
         localfilesystem.init({userDir:userDir, userFile:'testUserFile.json'}).then(function() {
-            localfilesystem.getUser('fred').then(function(user) {
-                user.fullName.should.eql("Fred Flintstone");
-                should.fail("fred doesn't exist");
-            }).otherwise(function(err) {
-                done(err);
-            });
+            return localfilesystem.getUser('fred');
+        }).then(function(user) {
+            user.fullName.should.eql("Fred Flintstone");
+            done(new Error('missing user found?'));
         }).catch(function(e) {
-             done(err);
+            // should fail here
+            done();
         });
     });
 });
