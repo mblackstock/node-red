@@ -29,9 +29,9 @@ RED.menu = (function() {
             var link = $('<a '+(opt.id?'id="'+opt.id+'" ':'')+'tabindex="-1" href="#">'+
                 (opt.toggle?'<i class="fa fa-check pull-right"></i>':'')+
                 (opt.icon?'<i class="'+opt.icon+'"></i> ':'')+
-                opt.label+
+                "<span class='menu-label'>"+opt.label+"</span>"+ 
                 '</a>').appendTo(item);
-                
+              
             menuItems[opt.id] = opt;
             
             if (opt.onselect) {

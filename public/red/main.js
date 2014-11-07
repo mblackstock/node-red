@@ -199,6 +199,9 @@ var RED = (function() {
         $.get('settings', function(data) {
             RED.settings = data;
             console.log("Node-RED: "+data.version);
+            // add version info to menu and the about box
+            $('#btn-about .menu-label').text(' About v'+data.version + '...');
+            $('.version').text('v'+data.version);
             loadNodeList();
         });
     }
@@ -337,6 +340,20 @@ var RED = (function() {
         dialog.modal();
     }
 
+    function showAbout() {
+
+        var dialog = $('#node-about');
+
+        dialog.on('show',function() {
+            RED.keyboard.disable();
+        });
+        dialog.on('hidden',function() {
+            RED.keyboard.enable();
+        });
+
+        dialog.modal();
+    }
+
     $(function() {
         RED.menu.init({id:"btn-sidemenu",
             options: [
@@ -366,7 +383,9 @@ var RED = (function() {
                 ]},
                 null,
                 {id:"btn-keyboard-shortcuts",icon:"fa fa-keyboard-o",label:"Keyboard Shortcuts",onselect:showHelp},
-                {id:"btn-help",icon:"fa fa-question",label:"Help...", href:"http://nodered.org/docs"}
+                {id:"btn-help",icon:"fa fa-question",label:"Help...", href:"http://nodered.org/docs"},
+                null,
+                {id:"btn-about",icon:"fa fa-asterisk",label:"About Node-RED v", onselect:showAbout}
             ]
         });
 
