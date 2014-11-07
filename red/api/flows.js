@@ -34,5 +34,14 @@ module.exports = {
             util.log("[red] Error saving flows : "+err);
             res.send(500,err.message);
         });
+    },
+    put: function(req,res) {
+        var flows = req.body;
+        redNodes.saveFlows(flows).then(function() {
+            res.send(204);
+        }).otherwise(function(err) {
+            util.log("[red] Error saving flows : "+err);
+            res.send(500,err.message);
+        });
     }
 }

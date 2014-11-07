@@ -96,21 +96,22 @@ span.logo img {
 #header .button:not(.disabled):hover {
     box-shadow: 0 0 2px #fff;
 }
-#btn-deploy:not(.disabled):hover {
+
+.action-deploy:not(.disabled):hover {
     background: #ca3f39;
 }
 
-#btn-deploy {
+.action-deploy {
     color: #fff !important;
     background: #d24741;
     box-shadow: 0 0 2px #fff;
 }
-#btn-deploy:not(.disabled):active {
+.action-deploy:not(.disabled):active {
     background: #aa1f19 !important;
     color: #ccc !important;
     box-shadow: 0 0 2px #999;
 }
-#btn-deploy.disabled {
+.action-deploy.disabled {
     cursor: default;
     background: #444 ;
     color: #999 !important;

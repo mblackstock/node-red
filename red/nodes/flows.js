@@ -316,7 +316,7 @@ var flowNodes = module.exports = {
     /**
      * Sets the current active config.
      * @param config the configuration to enable
-     * @return a promise for the starting of the new flow
+     * @return a promise for the saving and re-starting of the new flow
      */
     setFlows: function (config) {
         // Extract any credential updates
@@ -334,6 +334,17 @@ var flowNodes = module.exports = {
                 activeConfig = config;
                 parseConfig();
             });
+    },
+
+    /**
+     * Saves the current active config without parsing (deploying) it.
+     * @param config the configuration to save
+     * @return a promise for saving the flow
+     */
+    saveFlows: function (config) {
+        return storage.saveFlows(config).then(function() {
+            activeConfig = config;
+        });
     },
     stopFlows: stopFlows
 };

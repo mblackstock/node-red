@@ -46,6 +46,7 @@ function init(adminApp) {
     // Flows
     adminApp.get("/flows",flows.get);
     adminApp.post("/flows",flows.post);
+    adminApp.put("/flows", flows.put);
     
     // Nodes
     adminApp.get("/nodes",nodes.getAll);

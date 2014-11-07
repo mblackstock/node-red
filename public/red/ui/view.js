@@ -46,6 +46,7 @@ RED.view = (function() {
         mouse_mode = 0,
         moving_set = [],
         dirty = false,
+        uiDirty = false,
         lasso = null,
         showStatus = false,
         lastClickNode = null,
@@ -557,6 +558,7 @@ RED.view = (function() {
                 delete moving_set[i].ox;
                 delete moving_set[i].oy;
             }
+            setUIDirty(true);
         }
         if (mouse_mode == RED.state.IMPORT_DRAGGING) {
             RED.keyboard.remove(/* ESCAPE */ 27);
@@ -1603,12 +1605,28 @@ RED.view = (function() {
     RED.keyboard.add(/* i */ 73,{ctrl:true},function(){showImportNodesDialog();d3.event.preventDefault();});
 
     // TODO: 'dirty' should be a property of RED.nodes - with an event callback for ui hooks
+    /**
+     * Mark flow as dirty
+     */
     function setDirty(d) {
         dirty = d;
         if (dirty) {
             $("#btn-deploy").removeClass("disabled");
+            setUIDirty(false);
         } else {
             $("#btn-deploy").addClass("disabled");
+        }
+    }
+
+    /**
+     * Enable Save feature after a move only if not dirty
+     */
+    function setUIDirty(d) {
+        uiDirty = d && !dirty;
+        if (uiDirty) {
+            $("#btn-save").removeClass("disabled");
+        } else {
+            $("#btn-save").addClass("disabled");
         }
     }
 
@@ -1870,6 +1888,13 @@ RED.view = (function() {
                 return dirty;
             } else {
                 setDirty(d);
+            }
+        },
+        uiDirty: function(d) {
+            if (d == null) {
+                return uiDirty;
+            } else {
+                setUIDirty(d);
             }
         },
         importNodes: importNodes,

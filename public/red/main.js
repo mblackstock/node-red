@@ -42,7 +42,7 @@ var RED = (function() {
         event.preventDefault();
     });
 
-    function save(force) {
+    function deploy(force) {
         if (RED.view.dirty()) {
             //$("#debug-tab-clear").click();  // uncomment this to auto clear debug on deploy
 
@@ -116,7 +116,61 @@ var RED = (function() {
         }
     }
 
-    $('#btn-deploy').click(function() { save(); });
+    function save() {
+        if (!RED.view.uiDirty()) {
+            return;
+        }
+
+        $("#btn-icn-save").removeClass('fa-save');
+        $("#btn-icn-save").addClass('spinner');
+
+
+        // TODO: refactor to share code
+        RED.view.uiDirty(false);
+        var nns = RED.nodes.createCompleteNodeSet();
+
+        $.ajax({
+            url:"flows",
+            type: "PUT",
+            data: JSON.stringify(nns),
+            contentType: "application/json; charset=utf-8"
+        }).done(function(data,textStatus,xhr) {
+            RED.notify("Successfully saved","success");
+
+            // TODO: what is dirty and changed?
+            RED.nodes.eachNode(function(node) {
+
+                if (node.changed) {
+                    node.dirty = true;
+                    node.changed = false;
+                }
+                if(node.credentials) {
+                    delete node.credentials;
+                }
+            });
+            RED.nodes.eachConfig(function (confNode) {
+                if (confNode.credentials) {
+                    delete confNode.credentials;
+                }
+            });
+            // Once saved, cannot undo back to a clean state
+            RED.history.markAllDirty();
+            RED.view.redraw();
+        }).fail(function(xhr,textStatus,err) {
+            RED.view.uiDirty(true);
+            if (xhr.responseText) {
+                RED.notify("<strong>Error</strong>: "+xhr.responseText,"error");
+            } else {
+                RED.notify("<strong>Error</strong>: no response from server","error");
+            }
+        }).always(function() {
+            $("#btn-icn-save").removeClass('spinner');
+            $("#btn-icn-save").addClass('fa-save');
+        });
+    }
+
+    $('#btn-deploy').click(function() { deploy(); });
+    $('#btn-save').click(function() { save(); });
 
     $( "#node-dialog-confirm-deploy" ).dialog({
             title: "Confirm deploy",
@@ -128,7 +182,7 @@ var RED = (function() {
                 {
                     text: "Confirm deploy",
                     click: function() {
-                        save(true);
+                        deploy(true);
                         $( this ).dialog( "close" );
                     }
                 },
