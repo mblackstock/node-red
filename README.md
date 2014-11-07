@@ -100,8 +100,7 @@ Deploy the flow on all devices by hitting the **Deploy** button.  The flow shoul
 
 #### Example Flow
 
-***TODO: example flow with pictures*
-**
+***TODO: example flow with pictures***
 
 ## Support
 
@@ -123,14 +122,14 @@ Please see our [contributing guide](https://github.com/node-red/node-red/blob/ma
 
 ## Authors
 
-DNR is an extension of Node-RED by Mike Blackstock [@mblackstock](http://twitter.com/mblackstock)
-
 Node-RED is a creation of [IBM Emerging Technology](http://ibm.com/blogs/et).
 
 * Nick O'Leary [@knolleary](http://twitter.com/knolleary)
 * Dave Conway-Jones [@ceejay](http://twitter.com/ceejay)
 
 For more open-source projects from IBM, head over [here](http://ibm.github.io).
+
+DNR is an extension of Node-RED by Mike Blackstock [@mblackstock](http://twitter.com/mblackstock)
 
 ## Copyright and license
 
