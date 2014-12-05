@@ -65,7 +65,7 @@ RED.settings = (function () {
             },
             dataType: "json",
             cache: false,
-            url: 'settings',
+            url: '../settings',
             success: function (data) {
                 setProperties(data);
                 console.log("Node-RED: " + data.version);

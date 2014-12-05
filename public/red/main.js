@@ -309,7 +309,9 @@ var RED = (function() {
                 ]},
                 null,
                 {id:"btn-keyboard-shortcuts",icon:"fa fa-keyboard-o",label:"Keyboard Shortcuts",onselect:showHelp},
-                {id:"btn-help",icon:"fa fa-question",label:"Help...", href:"http://nodered.org/docs"}
+                {id:"btn-help",icon:"fa fa-question",label:"Help...", href:"http://nodered.org/docs"},
+                null,
+                {id:"btn-sign-out",icon:"fa fa-sign-out",label:"FRED Home", onselect:function(){window.location.replace('../');}}
             ]
         });
 

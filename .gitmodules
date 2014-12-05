@@ -1,0 +1,3 @@
+[submodule "front-node-red"]
+	path = front-node-red
+	url = git@bitbucket.org:sensetecnic/front-node-red.git
