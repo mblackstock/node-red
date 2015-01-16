@@ -68,9 +68,11 @@ var registry = (function() {
         for (var module in moduleConfigs) {
             if (moduleConfigs.hasOwnProperty(module)) {
                 if (!moduleList[module]) {
-                    moduleList[module] = {};
-                    moduleList[module].name = module;
-                    moduleList[module].nodes = {};
+                    moduleList[module] = {
+                        name: module,
+                        version: moduleConfigs[module].version,
+                        nodes: {}
+                    };
                 }
                 var nodes = moduleConfigs[module].nodes;
                 for(var node in nodes) {
@@ -87,16 +89,59 @@ var registry = (function() {
             }
         }
         if (settings.available()) {
-            return settings.set("modules",moduleList);
+            return settings.set("nodes",moduleList);
         } else {
             return when.reject("Settings unavailable");
+        }
+    }
+
+    function loadNodeConfigs() {
+        var configs = settings.get("nodes");
+
+        if (!configs) {
+            return {};
+        } else if (configs['node-red']) {
+            return configs;
+        } else {
+            // Migrate from the 0.9.1 format of settings
+            var newConfigs = {};
+            for (var id in configs) {
+                if (configs.hasOwnProperty(id)) {
+                    var nodeConfig = configs[id];
+                    var moduleName;
+                    var nodeSetName;
+
+                    if (nodeConfig.module) {
+                        moduleName = nodeConfig.module;
+                        nodeSetName = nodeConfig.name.split(":")[1];
+                    } else {
+                        moduleName = "node-red";
+                        nodeSetName = nodeConfig.name.replace(/^\d+-/,"").replace(/\.js$/,"");
+                    }
+
+                    if (!newConfigs[moduleName]) {
+                        newConfigs[moduleName] = {
+                            name: moduleName,
+                            nodes:{}
+                        };
+                    }
+                    newConfigs[moduleName].nodes[nodeSetName] = {
+                        name: nodeSetName,
+                        types: nodeConfig.types,
+                        enabled: nodeConfig.enabled,
+                        module: moduleName
+                    };
+                }
+            }
+            settings.set("nodes",newConfigs);
+            return newConfigs;
         }
     }
 
     return {
         init: function() {
             if (settings.available()) {
-                moduleConfigs = settings.get("modules")||{};
+                moduleConfigs = loadNodeConfigs();
             } else {
                 moduleConfigs = {};
             }
@@ -230,6 +275,9 @@ var registry = (function() {
                 return null;
             }
         },
+        getModuleVersion: function(module) {
+            return moduleConfigs[module].version;
+        },
         registerNodeConstructor: function(type,constructor) {
             if (nodeConstructors[type]) {
                 throw new Error(type+" already registered");
@@ -241,7 +289,6 @@ var registry = (function() {
             nodeConstructors[type] = constructor;
             events.emit("type-registered",type);
         },
-
 
         /**
          * Gets all of the node template configs
@@ -270,7 +317,11 @@ var registry = (function() {
         },
 
         getNodeConfig: function(id) {
-            var config = moduleConfigs[getModule(id)].nodes[getNode(id)];
+            var config = moduleConfigs[getModule(id)];
+            if (!config) {
+                return null;
+            }
+            config = config.nodes[getNode(id)];
             if (config) {
                 var result = config.config;
                 if (config.script) {
@@ -489,7 +540,7 @@ function scanTreeForNodesModules(moduleName) {
  * @param moduleDir the root directory of the package
  * @param pkg the module's package.json object
  */
-function loadNodesFromModule(moduleDir,pkg,version) {
+function loadNodesFromModule(moduleDir,pkg) {
     var nodes = pkg['node-red'].nodes||{};
     var results = [];
     var iconDirs = [];
@@ -497,7 +548,7 @@ function loadNodesFromModule(moduleDir,pkg,version) {
         if (nodes.hasOwnProperty(n)) {
             var file = path.join(moduleDir,nodes[n]);
             try {
-                results.push(loadNodeConfig(file,pkg.name,n,version));
+                results.push(loadNodeConfig(file,pkg.name,n,pkg.version));
             } catch(err) {
             }
             var iconDir = path.join(moduleDir,path.dirname(nodes[n]),"icons");
@@ -582,6 +633,7 @@ function loadNodeConfig(file,module,name,version) {
             node.err = err.toString();
         }
     }
+
     registry.addNodeSet(id,node,version);
     return node;
 }
@@ -614,7 +666,7 @@ function load(defaultNodesDir,disableNodePathScan) {
         var nodes = [];
         nodeFiles.forEach(function(file) {
             try {
-                nodes.push(loadNodeConfig(file,"node-red",path.basename(file).replace(/^\d+-/,"").replace(/\.js$/,"")));
+                nodes.push(loadNodeConfig(file,"node-red",path.basename(file).replace(/^\d+-/,"").replace(/\.js$/,""),settings.version));
             } catch(err) {
                 //
             }
@@ -720,14 +772,14 @@ function addNode(file) {
     }
     var nodes = [];
     try {
-        nodes.push(loadNodeConfig(file,"node-red",path.basename(file).replace(/^\d+-/,"").replace(/\.js$/,"")));
+        nodes.push(loadNodeConfig(file,"node-red",path.basename(file).replace(/^\d+-/,"").replace(/\.js$/,""),settings.version));
     } catch(err) {
         return when.reject(err);
     }
     return loadNodeList(nodes);
 }
 
-function addModule(module,version) {
+function addModule(module) {
     if (!settings.available()) {
         throw new Error("Settings unavailable");
     }
@@ -742,7 +794,7 @@ function addModule(module,version) {
         return when.reject(err);
     }
     moduleFiles.forEach(function(moduleFile) {
-        nodes = nodes.concat(loadNodesFromModule(moduleFile.dir,moduleFile.package,version));
+        nodes = nodes.concat(loadNodesFromModule(moduleFile.dir,moduleFile.package));
     });
     return loadNodeList(nodes);
 }
@@ -761,6 +813,7 @@ module.exports = {
 
     getModuleInfo: registry.getModuleInfo,
     getModuleList: registry.getModuleList,
+    getModuleVersion: registry.getModuleVersion,
 
     getNodeConfigs: registry.getAllNodeConfigs,
     getNodeConfig: registry.getNodeConfig,
