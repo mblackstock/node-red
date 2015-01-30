@@ -34,6 +34,32 @@ var userDir;
 var libDir;
 var libFlowsDir;
 var globalSettingsFile;
+var cryptoPassword;
+
+// Nodejs encryption with CTR
+var crypto = require('crypto');
+
+var algorithm = 'aes-256-ctr' ;
+
+function encrypt(text) {
+    if (!cryptoPassword) {
+        return text;
+    }
+    var cipher = crypto.createCipher(algorithm,cryptoPassword)
+    var crypted = cipher.update(text,'utf8','hex')
+    crypted += cipher.final('hex');
+    return crypted;
+}
+ 
+function decrypt(text){
+    if (!cryptoPassword) {
+        return text;
+    }
+    var decipher = crypto.createDecipher(algorithm,cryptoPassword)
+    var dec = decipher.update(text,'hex','utf8')
+    dec += decipher.final('utf8');
+    return dec;
+}
 
 function listFiles(dir) {
     var dirs = {};
@@ -143,6 +169,8 @@ function writeFile(path,content) {
 var localfilesystem = {
     init: function(_settings) {
         settings = _settings;
+        cryptoPassword = settings.cryptoPassword;
+
         userDir = settings.userDir || process.env.NODE_RED_HOME;
 
         if (settings.flowFile) {
@@ -202,12 +230,14 @@ var localfilesystem = {
         fs.exists(credentialsFile, function(exists) {
             if (exists) {
                 defer.resolve(nodeFn.call(fs.readFile, credentialsFile, 'utf8').then(function(data) {
+                    data = decrypt(data);
                     return JSON.parse(data)
                 }));
             } else {
                 fs.exists(oldCredentialsFile, function(exists) {
                     if (exists) {
                         defer.resolve(nodeFn.call(fs.readFile, oldCredentialsFile, 'utf8').then(function(data) {
+                            data = decrypt(data);
                             return JSON.parse(data)
                         }));
                     } else {
@@ -226,6 +256,7 @@ var localfilesystem = {
         } else {
             credentialData = JSON.stringify(credentials);
         }
+        credentialData = encrypt(credentialData);
         return writeFile(credentialsFile, credentialData);
     },
     

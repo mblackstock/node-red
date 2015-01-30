@@ -30,6 +30,7 @@ var flowFile;
 
 var knownOpts = {
     "settings":[path],
+    "crypto": String,
     "v": Boolean,
     "help": Boolean
 };
@@ -45,12 +46,13 @@ var parsedArgs = nopt(knownOpts,shortHands,process.argv,2)
 
 if (parsedArgs.help) {
     console.log("Node-RED v"+RED.version());
-    console.log("Usage: node red.js [-v] [-?] [--settings settings.js] [flows.json]");
+    console.log("Usage: node red.js [-v] [-?] [--settings settings.js] [--crypto password] [flows.json]");
     console.log("");
     console.log("Options:");
     console.log("  -s, --settings FILE  use specified settings file");
     console.log("  -v                   enable verbose output");
     console.log("  -?, --help           show usage");
+    console.log("  -crypto PWD          password to encrypt credentials");
     console.log("");
     console.log("Documentation can be found at http://nodered.org");
     process.exit();
@@ -62,6 +64,8 @@ if (parsedArgs.argv.remain.length > 0) {
 if (parsedArgs.settings) {
     settingsFile = parsedArgs.settings;
 }
+
+
 try {
     var settings = require(settingsFile);
 } catch(err) {
@@ -75,6 +79,10 @@ try {
 
 if (parsedArgs.v) {
     settings.verbose = true;
+}
+
+if (parsedArgs.crypto) {
+    settings.cryptoPassword = parsedArgs.crypto;   
 }
 
 if (settings.https) {
