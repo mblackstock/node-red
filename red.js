@@ -52,7 +52,7 @@ if (parsedArgs.help) {
     console.log("  -s, --settings FILE  use specified settings file");
     console.log("  -v                   enable verbose output");
     console.log("  -?, --help           show usage");
-    console.log("  -crypto PWD          password to encrypt credentials");
+    console.log("  -crypto SECRET       secret needed to encrypt/decrypt credentials");
     console.log("");
     console.log("Documentation can be found at http://nodered.org");
     process.exit();
@@ -82,7 +82,7 @@ if (parsedArgs.v) {
 }
 
 if (parsedArgs.crypto) {
-    settings.cryptoPassword = parsedArgs.crypto;   
+    settings.cryptoSecret = parsedArgs.crypto;   
 }
 
 if (settings.https) {

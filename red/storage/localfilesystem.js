@@ -34,28 +34,27 @@ var userDir;
 var libDir;
 var libFlowsDir;
 var globalSettingsFile;
-var cryptoPassword;
+var cryptoSecret;
 
-// Nodejs encryption with CTR
+// functions to encrypt and decrypt credentials files
 var crypto = require('crypto');
-
 var algorithm = 'aes-256-ctr' ;
 
 function encrypt(text) {
-    if (!cryptoPassword) {
+    if (!cryptoSecret) {
         return text;
     }
-    var cipher = crypto.createCipher(algorithm,cryptoPassword)
+    var cipher = crypto.createCipher(algorithm,cryptoSecret)
     var crypted = cipher.update(text,'utf8','hex')
     crypted += cipher.final('hex');
     return crypted;
 }
  
 function decrypt(text){
-    if (!cryptoPassword) {
+    if (!cryptoSecret) {
         return text;
     }
-    var decipher = crypto.createDecipher(algorithm,cryptoPassword)
+    var decipher = crypto.createDecipher(algorithm,cryptoSecret)
     var dec = decipher.update(text,'hex','utf8')
     dec += decipher.final('utf8');
     return dec;
@@ -169,7 +168,7 @@ function writeFile(path,content) {
 var localfilesystem = {
     init: function(_settings) {
         settings = _settings;
-        cryptoPassword = settings.cryptoPassword;
+        cryptoSecret = settings.cryptoSecret;
 
         userDir = settings.userDir || process.env.NODE_RED_HOME;
 
