@@ -135,14 +135,22 @@ describe('function node', function() {
         var flow = [{id:"n1",type:"function",wires:[["n2"]],func:"retunr"}];
         helper.load(functionNode, flow, function() {
             var n1 = helper.getNode("n1");
-            n1.on("log", function(msg) {
-                msg.should.have.property('level', 'error');
+            n1.receive({payload:"foo",topic: "bar"});
+            try {
+                helper.log().called.should.be.true;
+                var logEvents = helper.log().args.filter(function(evt) {
+                    return evt[0].type == "function";
+                });
+                logEvents.should.have.length(1);
+                var msg = logEvents[0][0];
+                msg.should.have.property('level', helper.log().ERROR);
                 msg.should.have.property('id', 'n1');
                 msg.should.have.property('type', 'function');
                 msg.should.have.property('msg', 'ReferenceError: retunr is not defined');
                 done();
-            });
-            n1.receive({payload:"foo",topic: "bar"});
+            } catch(err) {
+                done(err);
+            }
         });
     });
 

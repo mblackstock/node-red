@@ -15,6 +15,7 @@
  **/
 
 module.exports = function(RED) {
+    "use strict";
     var cron = require("cron");
 
     function InjectNode(n) {
@@ -54,7 +55,7 @@ module.exports = function(RED) {
 
         this.on("input",function(msg) {
             var msg = {topic:this.topic};
-            if ( (this.payloadType == null && this.payload == "") || this.payloadType == "date") {
+            if ( (this.payloadType == null && this.payload === "") || this.payloadType === "date") {
                 msg.payload = Date.now();
             } else if (this.payloadType == null || this.payloadType === "string") {
                 msg.payload = this.payload;
@@ -78,20 +79,20 @@ module.exports = function(RED) {
             delete this.cronjob;
         }
     }
-
-    RED.httpAdmin.post("/inject/:id", function(req,res) {
-            var node = RED.nodes.getNode(req.params.id);
-            if (node != null) {
-                try {
-                    node.receive();
-                    res.send(200);
-                } catch(err) {
-                    res.send(500);
-                    node.error("Inject failed:"+err);
-                    console.log(err.stack);
-                }
-            } else {
-                res.send(404);
+    
+    RED.httpAdmin.post("/inject/:id", RED.auth.needsPermission("inject.write"), function(req,res) {
+        var node = RED.nodes.getNode(req.params.id);
+        if (node != null) {
+            try {
+                node.receive();
+                res.send(200);
+            } catch(err) {
+                res.send(500);
+                node.error("Inject failed:"+err);
+                console.log(err.stack);
             }
+        } else {
+            res.send(404);
+        }
     });
 }

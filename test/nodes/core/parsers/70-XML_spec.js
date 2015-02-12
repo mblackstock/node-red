@@ -81,11 +81,21 @@ describe('XML node', function() {
         helper.load(xmlNode, flow, function() {
             var n1 = helper.getNode("n1");
             var n2 = helper.getNode("n2");
-            n1.on("log", function(msg) {
-                should.deepEqual("error", msg.level);
-                done();
-            });
             n1.receive({payload:'<not valid xml>',topic: "bar"});
+            setTimeout(function() {
+                try {
+                    var logEvents = helper.log().args.filter(function(evt) {
+                        return evt[0].type == "xml";
+                    });
+                    logEvents.should.have.length(1);
+                    logEvents[0][0].should.have.a.property('msg');
+                    logEvents[0][0].msg.toString().should.startWith("Error: Attribute without value");
+                    
+                    done();
+                } catch(err) {
+                    done(err);
+                }
+            },200);
         });
     });
     
@@ -95,12 +105,19 @@ describe('XML node', function() {
         helper.load(xmlNode, flow, function() {
             var n1 = helper.getNode("n1");
             var n2 = helper.getNode("n2");
-            n1.on("log", function(msg) {
-                msg.should.have.property('msg');
-                should.deepEqual("This node only handles xml strings or js objects.", msg.msg);
-                done();
-            });
             n1.receive({payload:1,topic: "bar"});
+            setTimeout(function() {
+                try {
+                    var logEvents = helper.log().args.filter(function(evt) {
+                        return evt[0].type == "xml";
+                    });
+                    logEvents.should.have.length(1);
+                    logEvents[0][0].should.have.a.property('msg',"This node only handles xml strings or js objects.");
+                    done();
+                } catch(err) {
+                    done(err);
+                }
+            },200);
         });
     });
 

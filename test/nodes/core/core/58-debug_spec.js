@@ -59,13 +59,6 @@ describe('debug node', function() {
         helper.load(debugNode, flow, function() {
             var n1 = helper.getNode("n1");
             var count = 0;
-            n1.on('log', function(msg) {
-                msg.should.eql({level:'log',id:'n1',type:'debug',msg:'test'});
-                count++;
-                if (count == 2) {
-                    done();
-                }
-            });
             websocket_test(function() {
                 n1.emit("input", {payload:"test"});
             }, function(msg) {
@@ -74,8 +67,18 @@ describe('debug node', function() {
                 });
                 count++;
             }, function() {
-                if (count == 2) {
+                try {
+                    helper.log().called.should.be.true;
+                    var logEvents = helper.log().args.filter(function(evt) {
+                        return evt[0].type == "debug";
+                    });
+                    logEvents.should.have.length(1);
+                    var tstmp = logEvents[0][0].timestamp;
+                    logEvents[0][0].should.eql({level:helper.log().INFO, id:'n1',type:'debug',msg:'test', timestamp:tstmp});
+
                     done();
+                } catch(err) {
+                    done(err);
                 }
             });
         });

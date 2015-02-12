@@ -246,6 +246,41 @@ RED.view = (function() {
         addSubflowOutput(activeSubflow.id);
     });
     
+    $("#workspace-subflow-delete").click(function(event) {
+        event.preventDefault();
+        var removedNodes = [];
+        var removedLinks = [];
+        var startDirty = RED.view.dirty();
+        
+        RED.nodes.eachNode(function(n) {
+            if (n.type == "subflow:"+activeSubflow.id) {
+                removedNodes.push(n);
+            }
+            if (n.z == activeSubflow.id) {
+                removedNodes.push(n);
+            }
+        });
+        
+        for (var i=0;i<removedNodes.length;i++) {
+            var rmlinks = RED.nodes.remove(removedNodes[i].id);
+            removedLinks = removedLinks.concat(rmlinks);
+        }
+        
+        RED.nodes.removeSubflow(activeSubflow);
+        
+        RED.history.push({
+                t:'delete',
+                nodes:removedNodes,
+                links:removedLinks,
+                subflow: activeSubflow,
+                dirty:startDirty
+        });
+        
+        RED.view.removeWorkspace(activeSubflow);
+        RED.view.dirty(true);
+        RED.view.redraw();
+    });
+    
     var workspace_tabs = RED.tabs.create({
         id: "workspace-tabs",
         onchange: function(tab) {
@@ -330,7 +365,8 @@ RED.view = (function() {
         RED.history.push({t:'add',workspaces:[ws],dirty:dirty});
         RED.view.dirty(true);
     }
-    $(function() {
+    
+    function init() {
         $('#btn-workspace-add-tab').on("click",addWorkspace);
         
         RED.menu.setAction('btn-workspace-add',addWorkspace);
@@ -340,7 +376,7 @@ RED.view = (function() {
         RED.menu.setAction('btn-workspace-delete',function() {
             deleteWorkspace(activeWorkspace);
         });
-    });
+    }
 
     function deleteWorkspace(id) {
         if (workspace_tabs.count() == 1) {
@@ -2016,8 +2052,36 @@ RED.view = (function() {
         }
 
     });
+    
+    function hideDropTarget() {
+        $("#dropTarget").hide();
+        RED.keyboard.remove(/* ESCAPE */ 27);
+    }
 
+    $('#chart').on("dragenter",function(event) {
+        if ($.inArray("text/plain",event.originalEvent.dataTransfer.types) != -1) {
+            $("#dropTarget").css({display:'table'});
+            RED.keyboard.add(/* ESCAPE */ 27,hideDropTarget);
+        }
+    });
+
+    $('#dropTarget').on("dragover",function(event) {
+        if ($.inArray("text/plain",event.originalEvent.dataTransfer.types) != -1) {
+            event.preventDefault();
+        }
+    })
+    .on("dragleave",function(event) {
+        hideDropTarget();
+    })
+    .on("drop",function(event) {
+        var data = event.originalEvent.dataTransfer.getData("text/plain");
+        hideDropTarget();
+        RED.view.importNodes(data);
+        event.preventDefault();
+    });
+    
     return {
+        init: init,
         state:function(state) {
             if (state == null) {
                 return mouse_mode

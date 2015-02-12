@@ -29,7 +29,10 @@ body {
     background: #000;
     box-sizing: border-box;
     padding: 0px 0px 0px 20px;
+    color: #C7C7C7;
+    font-size: 14px;
 }
+
 
 #dropTarget {
     position: absolute;
@@ -42,7 +45,7 @@ body {
     display: none;
 }
 #dropTarget div {
-    display: table-cell; 
+    display: table-cell;
     vertical-align: middle;
     text-align: center;
     font-size: 40px;
@@ -66,7 +69,6 @@ span.logo {
     font-size: 30px;
     line-height: 30px;
     text-decoration: none;
-    color: #C7C7C7;
 }
 span.logo span {
     vertical-align: middle;
@@ -83,10 +85,13 @@ span.logo img {
 }
 
 #header ul.header-toolbar > li {
-    display: inline-block;
     padding: 0;
     margin: 0;
     position: relative;
+}
+
+#header ul.header-toolbar > li {
+    display: inline-block;
 }
 
 .button {
@@ -179,7 +184,7 @@ span.deploy-button-group.open > #btn-deploy.disabled + a {
 
 .button-group {
     display: inline-block;
-    margin: auto 10px;
+    margin: auto 15px;
     vertical-align: middle;
     background: #555;
     clear: both;
@@ -197,16 +202,16 @@ span.deploy-button-group.open > #btn-deploy.disabled + a {
 .button-group > a:last-child {
 }
 
-#btn-sidemenu {
+#header .button {
     font-size: 20px !important;
 }
-#btn-sidemenu:active, #btn-sidemenu.active {
+#header .button:active, #header .button.active {
     background: #121212;
 }
 #header .button:focus {
     outline: none;
 }
-li.open #btn-sidemenu {
+#header li.open .button {
     background: #121212;
     border-color: #121212;
 }
@@ -292,7 +297,7 @@ li.open #btn-sidemenu {
     padding: 5px;
     overflow-y: auto;
     box-sizing:border-box;
-    -moz-box-sizing: border-box;    
+    -moz-box-sizing: border-box;
 }
 .palette-spinner {
     padding-top: 40px;
@@ -310,7 +315,7 @@ li.open #btn-sidemenu {
     padding: 3px;
     border-top: 1px solid #999;
     box-sizing:border-box;
-    -moz-box-sizing: border-box;    
+    -moz-box-sizing: border-box;
 }
 #palette-search i.fa-search {
     position: absolute;
@@ -339,9 +344,9 @@ li.open #btn-sidemenu {
     margin: 0px;
     height: 30px;
     box-sizing:border-box;
-    -moz-box-sizing: border-box;    
-    
+    -moz-box-sizing: border-box;
 }
+
 #palette-search input:focus {
     border: none;
     box-shadow: none;
@@ -412,7 +417,7 @@ li.open #btn-sidemenu {
    top:8px;
    left: -5px;
    box-sizing: border-box;
-    -moz-box-sizing: border-box;    
+    -moz-box-sizing: border-box;
    background:#d9d9d9;
    border-radius: 3px;
    width: 10px;
@@ -431,7 +436,7 @@ li.open #btn-sidemenu {
 #sidebar {
     background: #fff;
     box-sizing: border-box;
-    -moz-box-sizing: border-box;    
+    -moz-box-sizing: border-box;
 }
 #sidebar.closing {
     background: #eee;
@@ -760,6 +765,16 @@ g.link_unknown path.link_line {
 .form-row input {
     width:70%;
 }
+.form-row label .cb1 {
+    display: inline !important;
+    width: auto !important;
+    vertical-align: top !important;
+}
+.form-row label .cb2 {
+    display: inline !important;
+    width: auto !important;
+    vertical-align: top !important;
+}
 
 input.input-append-left {
     border-top-right-radius: 0px;
@@ -1019,7 +1034,7 @@ ul.red-ui-tabs li {
 }
 
 ul.red-ui-tabs li a.red-ui-tab-label {
-    display: block; 
+    display: block;
     padding: 3px 16px;
     color: #666;
 }
@@ -1224,7 +1239,12 @@ i.spinner {
 #header ul.dropdown-menu li.disabled a {
     color: #666;
 }
-    
+
+#header ul.dropdown-menu > li.disabled:hover > a,
+#header ul.dropdown-menu > li.disabled:focus > a {
+    background: none !important;
+}
+
 /* Deploy menu customisations */
 #header ul#btn-deploy-options-submenu {
     width: 300px !important;
@@ -1242,4 +1262,8 @@ i.spinner {
     display: none !important;
 }
 
-
+/* User menu customisations */
+#header ul#btn-usermenu-submenu li a#btn-username > .menu-label {
+    font-size: 16px;
+    color: #fff;
+}

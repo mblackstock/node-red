@@ -1,5 +1,5 @@
 /**
- * Copyright 2014 IBM Corp.
+ * Copyright 2014, 2015 IBM Corp.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -19,6 +19,7 @@ var EventEmitter = require("events").EventEmitter;
 var when = require("when");
 
 var redUtil = require("../util");
+var Log = require("../log");
 
 var flows = require("./flows");
 var comms = require("../comms");
@@ -29,7 +30,6 @@ function Node(n) {
     if (n.name) {
         this.name = n.name;
     }
-    flows.add(this);
     this.updateWires(n.wires);
 }
 
@@ -81,7 +81,9 @@ Node.prototype.on = function(event, callback) {
 
 Node.prototype.close = function() {};
 
-
+function constructUniqueIdentifier() {
+    return (1+Math.random()*4294967295).toString(16);
+}
 
 Node.prototype.send = function(msg) {
     var msgSent = false;
@@ -89,11 +91,15 @@ Node.prototype.send = function(msg) {
     
     if (msg === null || typeof msg === "undefined") {
         return;
-    } else if (!util.isArray(msg)) {
+    } else if (!util.isArray(msg)) {       
         if (this._wire) {
             // A single message and a single wire on output 0
             // TODO: pre-load flows.get calls - cannot do in constructor
             //       as not all nodes are defined at that point
+            if (!msg._msgid) {
+                msg._msgid = constructUniqueIdentifier();
+            }
+            this.metric("send",msg);
             node = flows.get(this._wire);
             if (node) {
                 node.receive(msg);
@@ -109,6 +115,8 @@ Node.prototype.send = function(msg) {
     // Build a list of send events so that all cloning is done before
     // any calls to node.receive
     var sendEvents = [];
+    
+    var sentMessageId = null;
     
     // for each output of node eg. [msgs to output 0, msgs to output 1, ...]
     for (var i = 0; i < numOutputs; i++) {
@@ -126,11 +134,15 @@ Node.prototype.send = function(msg) {
                     if (node) {
                         // for each msg to send eg. [[m1, m2, ...], ...]
                         for (k = 0; k < msgs.length; k++) {
+                            var m = msgs[k];
+                            if (!sentMessageId) {
+                                sentMessageId = m._msgid;
+                            }
                             if (msgSent) {
-                                sendEvents.push({n:node,m:redUtil.cloneMessage(msgs[k])});
+                                var clonedmsg = redUtil.cloneMessage(m);
+                                sendEvents.push({n:node,m:clonedmsg});
                             } else {
-                                // first msg sent so don't clone
-                                sendEvents.push({n:node,m:msgs[k]});
+                                sendEvents.push({n:node,m:m});
                                 msgSent = true;
                             }
                         }
@@ -139,14 +151,28 @@ Node.prototype.send = function(msg) {
             }
         }
     }
+    if (!sentMessageId) {
+        sentMessageId = constructUniqueIdentifier();
+    }
+    this.metric("send",{_msgid:sentMessageId});
     
     for (i=0;i<sendEvents.length;i++) {
         var ev = sendEvents[i];
+        if (!ev.m._msgid) {
+            ev.m._msgid = sentMessageId;
+        }
         ev.n.receive(ev.m);
     }
 };
 
-Node.prototype.receive = function(msg) {
+Node.prototype.receive = function(msg) {     
+    if (!msg) {
+        msg = {};
+    }
+    if (!msg._msgid) {
+        msg._msgid = constructUniqueIdentifier();
+    }
+    this.metric("receive",msg); 
     this.emit("input", msg);
 };
 
@@ -160,20 +186,36 @@ function log_helper(self, level, msg) {
     if (self.name) {
         o.name = self.name;
     }
-    self.emit("log", o);
+    Log.log(o);
 }
 
 Node.prototype.log = function(msg) {
-    log_helper(this, 'log', msg);
+    log_helper(this, Log.INFO, msg);
 };
 
 Node.prototype.warn = function(msg) {
-    log_helper(this, 'warn', msg);
+    log_helper(this, Log.WARN, msg);
 };
 
 Node.prototype.error = function(msg) {
-    log_helper(this, 'error', msg);
+    log_helper(this, Log.ERROR, msg);
 };
+
+/**
+ * If called with no args, returns whether metric collection is enabled
+ */
+Node.prototype.metric = function(eventname, msg, metricValue) {
+    if (typeof eventname === "undefined") {
+        return Log.metric();
+    }
+    var metrics = {};
+    metrics.level = Log.METRIC;
+    metrics.nodeid = this.id;
+    metrics.event = "node."+this.type+"."+eventname;    
+    metrics.msgid = msg._msgid;
+    metrics.value = metricValue;
+    Log.log(metrics);
+}
 
 /**
  * status: { fill:"red|green", shape:"dot|ring", text:"blah" }

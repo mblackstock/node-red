@@ -1,5 +1,5 @@
 /**
- * Copyright 2014 IBM Corp.
+ * Copyright 2014, 2015 IBM Corp.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -14,8 +14,10 @@
  * limitations under the License.
  **/
 
-var util = require("util");
 var when = require("when");
+
+var log = require("../log");
+var needsPermission = require("../api/auth").needsPermission;
 
 var credentialCache = {};
 var storage = null;
@@ -26,7 +28,7 @@ var redApp = null;
  * Adds an HTTP endpoint to allow look up of credentials for a given node id.
  */
 function registerEndpoint(type) {
-    redApp.get('/credentials/' + type + '/:id', function (req, res) {
+    redApp.get('/credentials/' + type + '/:id', needsPermission(type+".read"), function (req, res) {
         // TODO: This could be a generic endpoint with the type value
         //       parameterised.
         //
@@ -75,7 +77,7 @@ module.exports = {
         return storage.getCredentials().then(function (creds) {
             credentialCache = creds;
         }).otherwise(function (err) {
-            util.log("[red] Error loading credentials : " + err);
+            log.warn("Error loading credentials : " + err);
         });
     },
     
@@ -168,7 +170,7 @@ module.exports = {
             var dashedType = nodeType.replace(/\s+/g, '-');
             var definition = credentialsDef[dashedType];
             if (!definition) {
-                util.log('Credential Type ' + nodeType + ' is not registered.');
+                log.warn('Credential Type ' + nodeType + ' is not registered.');
                 return;
             }
             

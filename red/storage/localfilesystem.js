@@ -18,17 +18,19 @@ var fs = require('fs');
 var when = require('when');
 var nodeFn = require('when/node/function');
 var keys = require('when/keys');
-var util = require('util');
 var fspath = require("path");
 var mkdirp = require("mkdirp");
+
+var log = require("../log");
 
 var promiseDir = nodeFn.lift(mkdirp);
 
 var settings;
 var flowsFile;
 var flowsFullPath;
-var flowsPrev;
+var flowsFileBackup;
 var credentialsFile;
+var credentialsFileBackup;
 var oldCredentialsFile;
 var userDir;
 var libDir;
@@ -179,10 +181,17 @@ var localfilesystem = {
             flowsFile = 'flows_'+require('os').hostname()+'.json';
             flowsFullPath = fspath.join(userDir,flowsFile);
         }
-        var fsext = fspath.extname(flowsFile);
-        credentialsFile = fspath.join(userDir,fspath.basename(flowsFile,fsext)+"_cred"+fsext);
+        var ffExt = fspath.extname(flowsFullPath);
+        var ffName = fspath.basename(flowsFullPath);
+        var ffBase = fspath.basename(flowsFullPath,ffExt);
+        var ffDir = fspath.dirname(flowsFullPath);
+        
+        credentialsFile = fspath.join(userDir,ffBase+"_cred"+ffExt);
+        credentialsFileBackup = fspath.join(userDir,"."+ffBase+"_cred"+ffExt+".backup");
+        
         oldCredentialsFile = fspath.join(userDir,"credentials.json");
-        flowsPrev = fspath.join(userDir,"flows.backup");
+        
+        flowsFileBackup = fspath.join(ffDir,"."+ffName+".backup");
 
         libDir = fspath.join(userDir,"lib");
         libFlowsDir = fspath.join(libDir,"flows");
@@ -197,12 +206,12 @@ var localfilesystem = {
         var defer = when.defer();
         fs.exists(flowsFullPath, function(exists) {
             if (exists) {
-                util.log("[red] Loading flows : "+flowsFile);
+                log.info("Loading flows : "+flowsFile);
                 defer.resolve(nodeFn.call(fs.readFile,flowsFullPath,'utf8').then(function(data) {
                     return JSON.parse(data);
                 }));
             } else {
-                util.log("[red] Flows file not found : "+flowsFile   );
+                log.info("Flows file not found : "+flowsFile   );
                 defer.resolve([]);
             }
         });
@@ -211,7 +220,7 @@ var localfilesystem = {
 
     saveFlows: function(flows) {
         if (fs.existsSync(flowsFullPath)) {
-            fs.renameSync(flowsFullPath,flowsPrev);
+            fs.renameSync(flowsFullPath,flowsFileBackup);
         }
         
         var flowData;
@@ -249,6 +258,9 @@ var localfilesystem = {
     },
 
     saveCredentials: function(credentials) {
+        if (fs.existsSync(credentialsFile)) {
+            fs.renameSync(credentialsFile,credentialsFileBackup);
+        }
         var credentialData;
         if (settings.flowFilePretty) {
             credentialData = JSON.stringify(credentials,null,4);
@@ -266,7 +278,7 @@ var localfilesystem = {
                     try {
                         return JSON.parse(data);
                     } catch(err) {
-                        util.log("[red] Corrupted config detected - resetting");
+                        log.info("Corrupted config detected - resetting");
                         return {};
                     }
                 } else {
@@ -279,7 +291,6 @@ var localfilesystem = {
     saveSettings: function(settings) {
         return writeFile(globalSettingsFile,JSON.stringify(settings,null,1));
     },
-    
     
     getAllFlows: function() {
         return listFiles(libFlowsDir);

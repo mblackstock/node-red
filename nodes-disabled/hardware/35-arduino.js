@@ -43,14 +43,15 @@ module.exports = function(RED) {
             node.log("version "+node.board.boardVersion);
         });
 
-        node.on('close', function() {
+        node.on('close', function(done) {
             if (node.board) {
                 try {
                     node.board.close(function() {
+                        done();
                         node.log("port closed");
                     });
-                } catch(e) { }
-            }
+                } catch(e) { done(); }
+            } else { done(); }
         });
     }
     RED.nodes.registerType("arduino-board",ArduinoNode);
@@ -149,12 +150,9 @@ module.exports = function(RED) {
     }
     RED.nodes.registerType("arduino out",DuinoNodeOut);
 
-    RED.httpAdmin.get("/arduinoports",function(req,res) {
+    RED.httpAdmin.get("/arduinoports", RED.auth.needsPermission("arduino.read"), function(req,res) {
         ArduinoFirmata.list(function (err, ports) {
-            //console.log(JSON.stringify(ports));
-            res.writeHead(200, {'Content-Type': 'text/plain'});
-            res.write(JSON.stringify(ports));
-            res.end();
+            res.json(ports);
         });
     });
 }

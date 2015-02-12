@@ -31,17 +31,18 @@
 <body spellcheck="false">
 <div id="header">
     <span class="logo"><img src="node-red.png"> <span>Node-RED</span></span>
-    <ul class="header-toolbar">
+    <ul class="header-toolbar hide">
         <li><span class="deploy-button-group button-group">
                 <a id="btn-deploy" class="action-deploy disabled" href="#"><img id="btn-icn-deploy" src="images/deploy-full-o.png"> <span>Deploy</span></a>
                 <a id="btn-deploy-options"  data-toggle="dropdown"  class="" href="#"><i class="fa fa-caret-down"></i></a>
             </span></li>
+        <li><a id="btn-usermenu" class="button hide" data-toggle="dropdown" href="#"><i class="fa fa-user"></i></a></li>
         <li><a id="btn-sidemenu" class="button" data-toggle="dropdown" href="#"><i class="fa fa-bars"></i></a></li>
     <ul>
 </div>
-<div id="main-container" class="sidebar-closed">
+<div id="main-container" class="sidebar-closed hide">
     <div id="palette">
-        <img src="spin.svg" class="palette-spinner"/>
+        <img src="spin.svg" class="palette-spinner hide"/>
         <div id="palette-container" class="palette-scroll">
         </div>
         <div id="palette-search">
@@ -54,9 +55,10 @@
         <div id="workspace-add-tab"><a id="btn-workspace-add-tab" href="#"><i class="fa fa-plus"></i></a></div>
         <div id="chart"></div>
         <div id="workspace-toolbar">
-            <a class="button" id="workspace-subflow-edit" href="#"><i class="fa fa-pencil"></i> edit subflow name</a>
+            <a class="button" id="workspace-subflow-edit" href="#"><i class="fa fa-pencil"></i> edit name</a>
             <a class="button disabled" id="workspace-subflow-add-input" href="#"><i class="fa fa-plus"></i> input</a>
             <a class="button" id="workspace-subflow-add-output" href="#"><i class="fa fa-plus"></i> output</a>
+            <a class="button" id="workspace-subflow-delete" href="#"><i class="fa fa-trash"></i> delete subflow</a>
         </div>
     </div>
 
@@ -79,6 +81,7 @@
 
 <div id="notifications"></div>
 <div id="dropTarget"><div>Drop the flow here<br/><i class="fa fa-download"></i></div></div>
+<div id="shade"></div>
 
 <div id="dialog" class="hide"><form id="dialog-form" class="form-horizontal"></form></div>
 <div id="node-config-dialog" class="hide"><form id="dialog-config-form" class="form-horizontal"></form><div class="form-tips" id="node-config-dialog-user-count"></div></div>
@@ -106,7 +109,7 @@
 
 <div id="node-help" class="modal hide fade" tabindex="-1" role="dialog" aria-labelledby="node-help-label" aria-hidden="true">
   <div class="modal-header">
-    <h5 id="node-help-label">Keyboard Shortcuts <span style="float: right;"><a href="http://node-red.github.io/docs" target="_blank">Open help in new window &raquo;</a></span></h5>
+    <h5 id="node-help-label">Keyboard Shortcuts <span style="float: right;"><a href="http://nodered.org/docs" target="_blank">Open help in new window &raquo;</a></span></h5>
   </div>
   <div class="modal-body">
     <table>
@@ -241,15 +244,17 @@
 <script src="bootstrap/js/bootstrap.min.js"></script>
 <script src="jquery/js/jquery-ui-1.10.3.custom.min.js"></script>
 <script src="jquery/js/jquery.ui.touch-punch.min.js"></script>
+<script src="marked/marked.min.js"></script>
 <script src="orion/built-editor.min.js"></script>
 <script src="d3.v3.min.js"></script>
 <script src="red/main.js"></script>
+<script src="red/settings.js"></script>
+<script src="red/user.js"></script>
 <script src="red/comms.js"></script>
 <script src="red/ui/state.js"></script>
 <script src="red/nodes.js"></script>
 <script src="red/history.js"></script>
 <script src="red/validators.js"></script>
-<script src="red/settings.js"></script>
 <script src="red/ui/menu.js"></script>
 <script src="red/ui/keyboard.js"></script>
 <script src="red/ui/tabs.js"></script>
@@ -262,5 +267,6 @@
 <script src="red/ui/library.js"></script>
 <script src="red/ui/notifications.js"></script>
 <script src="red/ui/touch/radialMenu.js"></script>
+
 </body>
 </html>

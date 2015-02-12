@@ -1,5 +1,5 @@
 /**
- * Copyright 2013 IBM Corp.
+ * Copyright 2013, 2015 IBM Corp.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -23,6 +23,7 @@ var util = require("./util");
 var fs = require("fs");
 var settings = require("./settings");
 var credentials = require("./nodes/credentials");
+var auth = require("./api/auth");
 
 var path = require('path');
 
@@ -34,6 +35,7 @@ var RED = {
 
     init: function(httpServer,userSettings) {
         userSettings.version = this.version();
+        log.init(userSettings);
         settings.init(userSettings);
         server.init(httpServer,settings);
         return server.app;
@@ -49,6 +51,9 @@ var RED = {
     comms: comms,
     settings:settings,
     util: util,
+    auth: {
+        needsPermission: auth.needsPermission
+    },
     version: function () {
         var p = require(path.join(process.env.NODE_RED_HOME,"package.json"));
         if (fs.existsSync(path.join(process.env.NODE_RED_HOME,".git"))) {

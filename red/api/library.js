@@ -1,5 +1,5 @@
 /**
- * Copyright 2013, 2014 IBM Corp.
+ * Copyright 2013, 2015 IBM Corp.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -14,14 +14,14 @@
  * limitations under the License.
  **/
 
-var util = require("util");
-
 var redApp = null;
 var storage = require("../storage");
+var log = require("../log");
+var needsPermission = require("./auth").needsPermission;
 
 function createLibrary(type) {
     if (redApp) {
-        redApp.get(new RegExp("/library/"+type+"($|\/(.*))"),function(req,res) {
+        redApp.get(new RegExp("/library/"+type+"($|\/(.*))"),needsPermission("library.read"),function(req,res) {
             var path = req.params[1]||"";
             storage.getLibraryEntry(type,path).then(function(result) {
                 if (typeof result === "string") {
@@ -33,7 +33,7 @@ function createLibrary(type) {
                 }
             }).otherwise(function(err) {
                 if (err) {
-                    util.log("[red] Error loading library entry '"+path+"' : "+err);
+                    log.warn("Error loading library entry '"+path+"' : "+err);
                     if (err.message.indexOf('forbidden') === 0) {
                         res.send(403);
                         return;
@@ -43,7 +43,7 @@ function createLibrary(type) {
             });
         });
         
-        redApp.post(new RegExp("/library/"+type+"\/(.*)"),function(req,res) {
+        redApp.post(new RegExp("/library/"+type+"\/(.*)"),needsPermission("library.write"),function(req,res) {
             var path = req.params[0];
             var fullBody = '';
             req.on('data', function(chunk) {
@@ -53,7 +53,7 @@ function createLibrary(type) {
                 storage.saveLibraryEntry(type,path,req.query,fullBody).then(function() {
                     res.send(204);
                 }).otherwise(function(err) {
-                    util.log("[red] Error saving library entry '"+path+"' : "+err);
+                    log.warn("Error saving library entry '"+path+"' : "+err);
                     if (err.message.indexOf('forbidden') === 0) {
                         res.send(403);
                         return;
@@ -81,7 +81,7 @@ module.exports = {
             res.send(data);
         }).otherwise(function(err) {
             if (err) {
-                util.log("[red] Error loading flow '"+req.params[0]+"' : "+err);
+                log.warn("Error loading flow '"+req.params[0]+"' : "+err);
                 if (err.message.indexOf('forbidden') === 0) {
                     res.send(403);
                     return;
@@ -95,7 +95,7 @@ module.exports = {
         storage.saveFlow(req.params[0],flow).then(function() {
             res.send(204);
         }).otherwise(function(err) {
-            util.log("[red] Error loading flow '"+req.params[0]+"' : "+err);
+            log.warn("Error loading flow '"+req.params[0]+"' : "+err);
             if (err.message.indexOf('forbidden') === 0) {
                 res.send(403);
                 return;
