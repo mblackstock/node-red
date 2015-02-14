@@ -166,14 +166,13 @@
     RED.nodes.registerType('wotkit-credentials',{
         category: 'config',
         defaults: {
-            nickname: {value:"Default"}
+            nickname: {value:"Default", required:true},
+            url: {value:"http://wotkit.sensetecnic.com", required:true}
         },
         credentials: {
             user: {type: "text", required:true},
             password: {type:"password", required:true},
-            url: {type:"text", value:"wotkit.sensetecnic.com", required:true}
         },
-            
         label: function() {
             return this.nickname;
         }

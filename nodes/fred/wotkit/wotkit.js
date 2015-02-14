@@ -44,10 +44,11 @@ module.exports = function(RED) {
         }
 
         this.sensor = n.sensor;
-        this.lastId = null;
-        this.url = this.login.credentials.url || "http://wotkit.sensetecnic.com";
+        this.url = this.login.url || "http://wotkit.sensetecnic.com";
         this.timeout = (n.timeout || 5) * (n.timeoutUnits === "minutes" ? 60000:1000);
         this.querytimeout = this.timeout + 1000;
+
+        this.lastId = null;
 
         var url = this.url+"/api/sensors/"+node.sensor+"/data?before="+node.querytimeout;
         node.pollWotkitData = setInterval(function() {
@@ -55,8 +56,7 @@ module.exports = function(RED) {
         },this.timeout);
     }
 
-    RED.nodes.registerType("wotkit in",WotkitIn,{
-    });
+    RED.nodes.registerType("wotkit in",WotkitIn);
 
     WotkitIn.prototype.close = function(){
         if (this.pollWotkitData != null) {
@@ -79,22 +79,20 @@ module.exports = function(RED) {
             makeHTTPRequest(url, method, node, msg);
         });
     }
-    RED.nodes.registerType("wotkit out",WotkitOut,{
-
-    });
+    RED.nodes.registerType("wotkit out",WotkitOut);
 
     function WotkitCredentialsNode(n) {
         RED.nodes.createNode(this,n);
-        this.name = n.name;
-        this.user = n.user;
-        this.password = n.password;
         this.url = n.url;
+        if (this.credentials) {
+            this.username = this.credentials.user;
+            this.password = this.credentials.password; 
+        }
     }
     RED.nodes.registerType("wotkit-credentials", WotkitCredentialsNode, {
         credentials: {
             user: {type:"text"},
-            password: {type: "password"},
-            url: {type: "text"}
+            password: {type: "password"}
         }
     });
 
