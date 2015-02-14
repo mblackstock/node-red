@@ -67,14 +67,23 @@ module.exports = function(RED) {
     function WotkitOut(n) {
         RED.nodes.createNode(this,n);
         var node = this;
+
+        if (!n.sensor) {
+            node.error("No sensor specified");
+            return;
+        }
+
+        this.login = RED.nodes.getNode(n.login);// Retrieve the config node
+        if (!this.login) {
+            node.error("No credentials specified");
+            return;
+        }
         this.sensor = n.sensor;
-        // Retrieve the config node
-        this.login = RED.nodes.getNode(n.login);
+        this.url = this.login.url || "http://wotkit.sensetecnic.com";
+
         this.on("input",function(msg) {
             //post upstream msg to wotkit
-            var sensor_name = node.sensor;
-
-            var url = "/api/sensors/"+sensor_name+"/data";
+            var url = node.url+"/api/sensors/"+node.sensor+"/data";
             var method = "POST";
             makeHTTPRequest(url, method, node, msg);
         });
@@ -141,7 +150,6 @@ module.exports = function(RED) {
     }
 
     function makeHTTPRequest(url, method, node, msg) {
-        url = node.login.credentials.url+url;
         var opts = urllib.parse(url);
         opts.method = method;
         opts.headers = {};
