@@ -257,6 +257,11 @@ RED.editor = (function() {
                     id: "node-dialog-cancel",
                     text: "Cancel",
                     click: function() {
+                        if (editing_node._def) {
+                            if (editing_node._def.oneditcancel) {
+                                editing_node._def.oneditcancel.call(editing_node);
+                            }
+                        }
                         $( this ).dialog( "close" );
                     }
                 }
@@ -267,6 +272,7 @@ RED.editor = (function() {
                 }
             },
             open: function(e) {
+                $(this).parent().find(".ui-dialog-titlebar-close").hide();
                 RED.keyboard.disable();
                 if (editing_node) {
                     var size = $(this).dialog('option','sizeCache-'+editing_node.type);
@@ -547,6 +553,9 @@ RED.editor = (function() {
                             if (configTypeDef.ondelete) {
                                 configTypeDef.ondelete.call(RED.nodes.node(configId));
                             }
+                            if (configTypeDef.oneditdelete) {
+                                configTypeDef.oneditdelete.call(RED.nodes.node(configId));
+                            }
                             RED.nodes.remove(configId);
                             for (var i=0;i<configNode.users.length;i++) {
                                 var user = configNode.users[i];
@@ -680,7 +689,8 @@ RED.editor = (function() {
             ],
             resize: function(e,ui) {
             },
-            open: function(e) {
+            open: function(e,ui) {
+                $(this).parent().find(".ui-dialog-titlebar-close").hide();
                 if (RED.view.state() != RED.state.EDITING) {
                     RED.keyboard.disable();
                 }
@@ -756,7 +766,8 @@ RED.editor = (function() {
                 }
             }
         ],
-        open: function(e) {
+        open: function(e,ui) {
+            $(this).parent().find(".ui-dialog-titlebar-close").hide();
             RED.keyboard.disable();
         },
         close: function(e) {

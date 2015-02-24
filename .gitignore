@@ -1,10 +1,11 @@
-settings.js
 node_modules
 credentials.json
 flows*.json
-flows.backup
+*.backup
 *_cred*
 nodes/node-red-nodes/
 .npm
 /coverage
 .config.json
+.sessions.json
+
