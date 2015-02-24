@@ -336,12 +336,18 @@ var RED = (function() {
                         label:"<b>"+RED.settings.user.username+"</b>"
                     });
                     RED.menu.addItem("btn-usermenu",{
-                        id:"btn-logout",
-                        // label:"Logout",
+                        id:"btn-fred",
                         label: "Return to FRED",
                         onselect: function() {
-                            //RED.user.logout();
                             window.location.replace('../');
+                        }
+                    });
+                    RED.menu.addItem("btn-usermenu",{
+                        id:"btn-logout",
+                        label: "Logout",
+                        onselect: function() {
+                            //RED.user.logout();
+                            window.location.replace('../logout');
                         }
                     });
                 }
