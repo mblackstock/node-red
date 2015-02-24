@@ -298,10 +298,7 @@ var RED = (function() {
                 ]},
                 null,
                 {id:"btn-keyboard-shortcuts",label:"Keyboard Shortcuts",onselect:showHelp},
-                {id:"btn-help",label:"Node-RED Website", href:"http://nodered.org/docs"},
-                null,
-                {id:"btn-sign-out",icon:"fa fa-sign-out",label:"FRED Home", onselect:function(){window.location.replace('../');}}
-
+                {id:"btn-help",label:"Node-RED Website", href:"http://nodered.org/docs"}
             ]
         });
         
@@ -340,9 +337,11 @@ var RED = (function() {
                     });
                     RED.menu.addItem("btn-usermenu",{
                         id:"btn-logout",
-                        label:"Logout",
+                        // label:"Logout",
+                        label: "Return to FRED",
                         onselect: function() {
-                            RED.user.logout();
+                            //RED.user.logout();
+                            window.location.replace('../');
                         }
                     });
                 }
