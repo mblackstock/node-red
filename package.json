@@ -57,7 +57,25 @@
         "passport-http-bearer":"1.0.1",
         "passport-oauth2-client-password":"0.1.2",
         "oauth2orize":"1.0.1",
-        "node-red-contrib-wotkit":"SenseTecnic/wotkit-node"
+
+        "node-red-contrib-wotkit":"SenseTecnic/wotkit-node",
+        "node-red-node-web-nodes":"0.2.0",
+        "node-red-node-pushbullet":"0.0.3",
+        "node-red-node-wordpos":"0.0.1",
+        "node-red-node-xmpp":"0.0.2",
+        "node-red-node-badwords":"0.0.1",
+        "node-red-node-suncalc":"0.0.5",
+        "node-red-node-smooth":"0.0.2",
+        "node-red-node-ping":"0.0.3",
+
+        "mongodb":"1.4.29",
+        "js2xmlparser":"0.1.7",
+        "badwords":"0.0.3",
+        "redis":"0.12.1",
+        "fs.notify":"0.0.4",
+        "feedparser":"0.19.2",
+        "node-stringprep":"0.7.0"
+
     },
     "devDependencies": {
         "grunt": "0.4.5",
