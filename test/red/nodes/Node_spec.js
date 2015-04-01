@@ -1,5 +1,5 @@
 /**
- * Copyright 2014 IBM Corp.
+ * Copyright 2014, 2015 IBM Corp.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -19,7 +19,6 @@ var sinon = require('sinon');
 var RedNode = require("../../../red/nodes/Node");
 var Log = require("../../../red/log");
 var flows = require("../../../red/nodes/flows");
-
 var comms = require('../../../red/comms');
 
 describe('Node', function() {
@@ -73,6 +72,34 @@ describe('Node', function() {
                 testdone();
             });
         });
+
+        it('allows multiple close handlers to be registered',function(testdone) {
+            var n = new RedNode({id:'123',type:'abc'});
+            var callbacksClosed = 0;
+            n.on('close',function(done) {
+                setTimeout(function() {
+                    callbacksClosed++;
+                    done();
+                },200);
+            });
+            n.on('close',function(done) {
+                setTimeout(function() {
+                    callbacksClosed++;
+                    done();
+                },200);
+            });
+            n.on('close',function() {
+                callbacksClosed++;
+            });
+            var p = n.close();
+            should.exist(p);
+            p.then(function() {
+                callbacksClosed.should.eql(3);
+                testdone();
+            }).otherwise(function(e) {
+                testdone(e);
+            });
+        });
     });
 
 
@@ -86,7 +113,7 @@ describe('Node', function() {
             });
             n.receive(message);
         });
-        
+
         it('writes metric info with undefined msg', function(done){
             var n = new RedNode({id:'123',type:'abc'});
             n.on('input',function(msg) {
@@ -96,7 +123,7 @@ describe('Node', function() {
             });
             n.receive();
         });
-        
+
         it('writes metric info with null msg', function(done){
             var n = new RedNode({id:'123',type:'abc'});
             n.on('input',function(msg) {
@@ -143,7 +170,7 @@ describe('Node', function() {
 
             var rcvdCount = 0;
 
-            n2.on('input',function(msg) {                
+            n2.on('input',function(msg) {
                 if (rcvdCount === 0) {
                     // first msg sent, don't clone
                     should.deepEqual(msg,messages[rcvdCount]);
@@ -178,7 +205,7 @@ describe('Node', function() {
 
             var rcvdCount = 0;
 
-            // first message sent, don't clone 
+            // first message sent, don't clone
             // message uuids should match
             n2.on('input',function(msg) {
                 should.deepEqual(msg,messages[0]);
@@ -246,7 +273,7 @@ describe('Node', function() {
             var flowGet = sinon.stub(flows,"get",function(id) {
                 return {'n1':n1,'n2':n2}[id];
             });
-            
+
             var messages = [
                 {payload:"hello world"},
                 {payload:"hello world again"}
@@ -277,7 +304,7 @@ describe('Node', function() {
             var message = {payload: "foo", cloned: cloned, req: req, res: res};
 
             var rcvdCount = 0;
-            
+
             // first message to be sent, so should not be cloned
             n2.on('input',function(msg) {
                 should.deepEqual(msg, message);
@@ -331,8 +358,6 @@ describe('Node', function() {
             var receiver2 = new RedNode({id:'n3',type:'abc'});
             sender.send({"some": "message"});
         })
-        
-        
     });
 
 
@@ -379,18 +404,54 @@ describe('Node', function() {
     });
 
     describe('#error', function() {
+        it('handles a null error message', function(done) {
+            var n = new RedNode({id:'123',type:'abc'});
+            var loginfo = {};
+            sinon.stub(Log, 'log', function(msg) {
+                loginfo = msg;
+            });
+            sinon.stub(flows,"handleError", function(node,message,msg) {
+            });
+
+            var message = {a:1};
+
+            n.error(null,message);
+            should.deepEqual({level:Log.ERROR, id:n.id, type:n.type, msg:""}, loginfo);
+
+            flows.handleError.called.should.be.true;
+            flows.handleError.args[0][0].should.eql(n);
+            flows.handleError.args[0][1].should.eql("");
+            flows.handleError.args[0][2].should.eql(message);
+
+            Log.log.restore();
+            flows.handleError.restore();
+            done();
+        });
+
         it('produces an error message', function(done) {
             var n = new RedNode({id:'123',type:'abc'});
             var loginfo = {};
             sinon.stub(Log, 'log', function(msg) {
                 loginfo = msg;
             });
-            n.error("an error message");
-            should.deepEqual({level:Log.ERROR, id:n.id,
-                             type:n.type, msg:"an error message"}, loginfo);
+            sinon.stub(flows,"handleError", function(node,message,msg) {
+            });
+
+            var message = {a:2};
+
+            n.error("This is an error",message);
+            should.deepEqual({level:Log.ERROR, id:n.id, type:n.type, msg:"This is an error"}, loginfo);
+
+            flows.handleError.called.should.be.true;
+            flows.handleError.args[0][0].should.eql(n);
+            flows.handleError.args[0][1].should.eql("This is an error");
+            flows.handleError.args[0][2].should.eql(message);
+
             Log.log.restore();
+            flows.handleError.restore();
             done();
         });
+
     });
 
     describe('#metric', function() {
@@ -408,8 +469,34 @@ describe('Node', function() {
             done();
         });
     });
-    
-    
+
+    describe('#metric', function() {
+        it('returns metric value if eventname undefined', function(done) {
+            var n = new RedNode({id:'123',type:'abc'});
+            var loginfo = {};
+            sinon.stub(Log, 'log', function(msg) {
+                loginfo = msg;
+            });
+            var msg = {payload:"foo", _msgid:"987654321"};
+            var m = n.metric(undefined,msg,"15mb");
+            m.should.be.a.boolean;
+            Log.log.restore();
+            done();
+        });
+        it('returns not defined if eventname defined', function(done) {
+            var n = new RedNode({id:'123',type:'abc'});
+            var loginfo = {};
+            sinon.stub(Log, 'log', function(msg) {
+                loginfo = msg;
+            });
+            var msg = {payload:"foo", _msgid:"987654321"};
+            var m = n.metric("info",msg,"15mb");
+            should(m).be.undefined;
+            Log.log.restore();
+            done();
+        });
+    });
+
     describe('#status', function() {
         after(function() {
             comms.publish.restore();

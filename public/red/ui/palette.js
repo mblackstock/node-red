@@ -1,5 +1,5 @@
 /**
- * Copyright 2013 IBM Corp.
+ * Copyright 2013, 2015 IBM Corp.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -17,7 +17,7 @@
 RED.palette = (function() {
 
     var exclusion = ['config','unknown','deprecated'];
-    var core = ['input', 'output', 'function', 'subflows', 'social', 'storage', 'analysis', 'advanced'];
+    var core = ['subflows', 'input', 'output', 'function', 'social', 'storage', 'analysis', 'advanced'];
 
     function createCategoryContainer(category){
         var escapedCategory = category.replace(" ","_");
@@ -98,7 +98,6 @@ RED.palette = (function() {
     }
 
     function addNodeType(nt,def) {
-
         var nodeTypeId = escapeNodeType(nt);
         if ($("#palette_node_"+nodeTypeId).length) {
             return;
@@ -121,17 +120,15 @@ RED.palette = (function() {
                 label = (typeof def.paletteLabel === "function" ? def.paletteLabel.call(def) : def.paletteLabel)||"";
             }
 
-            d.innerHTML = '<div class="palette_label"></div>';
+            
+            $('<div/>',{class:"palette_label"+(def.align=="right"?" palette_label_right":"")}).appendTo(d);
 
             d.className="palette_node";
+            
+            
             if (def.icon) {
-                d.style.backgroundImage = "url(icons/"+def.icon+")";
-                d.style.backgroundSize = "18px 27px";
-                if (def.align == "right") {
-                    d.style.backgroundPosition = "95% 50%";
-                } else if (def.inputs > 0) {
-                    d.style.backgroundPosition = "10% 50%";
-                }
+                var iconContainer = $('<div/>',{class:"palette_icon_container"+(def.align=="right"?" palette_icon_container_right":"")}).appendTo(d);
+                $('<div/>',{class:"palette_icon",style:"background-image: url(icons/"+def.icon+")"}).appendTo(iconContainer);
             }
 
             d.style.backgroundColor = def.color;
@@ -169,6 +166,7 @@ RED.palette = (function() {
                 container:'body'
             });
             $(d).click(function() {
+                RED.view.focus();
                 var help = '<div class="node-help">'+($("script[data-help-name|='"+d.type+"']").html()||"")+"</div>";
                 $("#tab-info").html(help);
             });
@@ -176,16 +174,41 @@ RED.palette = (function() {
                 helper: 'clone',
                 appendTo: 'body',
                 revert: true,
-                revertDuration: 50
+                revertDuration: 50,
+                start: function() {RED.view.focus();}
             });
+            
+            if (def.category == "subflows") {
+                $(d).dblclick(function(e) {
+                    RED.workspaces.show(nt.substring(8));
+                    e.preventDefault();
+                });
+            }
 
             setLabel(nt,$(d),label);
+            
+            var categoryNode = $("#palette-container-"+category);
+            if (categoryNode.find(".palette_node").length === 1) {
+                if (!categoryNode.find("i").hasClass("expanded")) {
+                    categoryNode.find(".palette-content").slideToggle();
+                    categoryNode.find("i").toggleClass("expanded");
+                }
+            }
+            
         }
     }
 
     function removeNodeType(nt) {
         var nodeTypeId = escapeNodeType(nt);
-        $("#palette_node_"+nodeTypeId).remove();
+        var paletteNode = $("#palette_node_"+nodeTypeId);
+        var categoryNode = paletteNode.closest(".palette-category");
+        paletteNode.remove();
+        if (categoryNode.find(".palette_node").length === 0) {
+            if (categoryNode.find("i").hasClass("expanded")) {
+                categoryNode.find(".palette-content").slideToggle();
+                categoryNode.find("i").toggleClass("expanded");
+            }
+        }
     }
     function hideNodeType(nt) {
         var nodeTypeId = escapeNodeType(nt);
@@ -232,7 +255,8 @@ RED.palette = (function() {
 
         var re = new RegExp(val,'i');
         $(".palette_node").each(function(i,el) {
-            if (val === "" || re.test(el.id)) {
+            var currentLabel = $(el).find(".palette_label").text();
+            if (val === "" || re.test(el.id) || re.test(currentLabel)) {
                 $(this).show();
             } else {
                 $(this).hide();

@@ -259,7 +259,9 @@ span.deploy-button-group.open > #btn-deploy.disabled + a {
    left:0px;
    right:0px;
 }
-
+#chart svg:focus {
+    outline: none;
+}
 #workspace-toolbar {
     display: none;
     position: absolute;
@@ -279,7 +281,7 @@ span.deploy-button-group.open > #btn-deploy.disabled + a {
 
 #palette {
    background: #f3f3f3;
-   width: 140px;
+   width: 170px;
    text-align: center;
    -webkit-user-select: none;
    -khtml-user-select: none;
@@ -389,11 +391,15 @@ span.deploy-button-group.open > #btn-deploy.disabled + a {
     clear: both;
 }
 .palette_label {
-    margin: 4px 0;
+    margin: 4px 0 4px 28px;
     line-height: 20px;
-    text-align: center;
     overflow: hidden;
+    text-align: center;
 }
+.palette_label_right {
+    margin: 4px 28px 4px 0;
+}
+
 .palette_node {
    cursor:move;
    font-size:13px;
@@ -404,7 +410,7 @@ span.deploy-button-group.open > #btn-deploy.disabled + a {
    border: 2px solid #999;
    background-position: 5% 50%;
    background-repeat: no-repeat;
-   width: 90px;
+   width: 120px;
    background-size: contain;
    position: relative;
 }
@@ -425,12 +431,37 @@ span.deploy-button-group.open > #btn-deploy.disabled + a {
    border: 1px solid #999;
 }
 .palette_port_output {
-    left:85px;
+    left:auto;
+    right: -6px;
 }
 
 .palette_node:hover .palette_port {
   border-color: #999;
   background-color: #eee;
+}
+.palette_icon_container {
+    position: absolute;
+    text-align: center;
+    top:0;
+    bottom:0;
+    left:0;
+    width: 30px;
+    border-right: 2px solid rgba(0,0,0,0.1);
+    background-color: rgba(0,0,0,0.05);
+}
+.palette_icon_container_right {
+    left: auto;
+    right: 0;
+    border-right: none;
+    border-left: 2px solid rgba(0,0,0,0.1);
+}
+.palette_icon {
+    display: inline-block;
+    width: 20px;
+    height: 100%;
+    background-position: 50% 50%;
+    background-size: contain;
+    background-repeat: no-repeat;
 }
 
 #sidebar {
@@ -457,7 +488,7 @@ span.deploy-button-group.open > #btn-deploy.disabled + a {
 #workspace {
     position: absolute;
     margin: 0;
-    top:5px; left:160px; bottom: 10px; right: 330px;
+    top:5px; left:190px; bottom: 10px; right: 330px;
 }
 #chart-zoom-controls {
     position: absolute;
@@ -750,10 +781,12 @@ g.link_unknown path.link_line {
     margin-bottom: 5px;
 }
 
-#dialog-form {
+.dialog-form, #dialog-form, #dialog-config-form {
     margin: 0;
     height: 100%;
 }
+
+
 .form-row {
     clear: both;
     margin-bottom:10px;
@@ -786,6 +819,7 @@ button.input-append-right {
     padding: 8px;
     border-radius: 5px;
     border: 1px solid #999;
+    max-width: 450px;
 }
 .form-tips code {
     border: none;
@@ -793,6 +827,7 @@ button.input-append-right {
 }
 
 table.node-info {
+    font-size: 14px;
     margin: 5px;
     width: 97%;
 }
@@ -823,6 +858,16 @@ table.node-info td:last-child{
 div.node-info {
     margin: 5px;
 }
+.node-info-property-header {
+    color: #666;
+}
+
+.node-info-property-header:hover,
+.node-info-property-header:focus {
+    color: #666;
+    text-decoration: none;
+}
+
 
 .input-error {
     border-color: rgb(214, 97, 95) !important;
@@ -909,13 +954,21 @@ div.node-info {
 #node-help {
     width: 700px;
 }
-#node-help * td {
-    padding: 0.8em 0.5em;
+#keyboard-help-dialog {
+    font-size: 0.9em;
 }
-#node-help * tr > td:first-child+td+td {
-    padding-left: 5em;
+.keyboard-shortcuts {
+    padding: 10px;
 }
-
+.keyboard-shortcuts td  {
+    padding: 7px 5px;
+    margin-bottom: 10px;
+    white-space: pre;
+}
+.keyboard-shortcuts td:first-child {
+    text-align: right;
+    padding-right: 10px;
+}
 .help-key {
     border: 1px solid #ddd;
     padding: 4px;
@@ -965,6 +1018,7 @@ div.node-info {
     border:1px solid #ccc;
     border-radius:5px;
     overflow: hidden;
+    font-size: 16px !important;
 }
 #workspace-tabs {
     margin-right: 28px;
@@ -1017,7 +1071,7 @@ ul.red-ui-tabs li {
     margin: 0 5px 0 0;
     height: 23px;
     line-height: 17px;
-    max-width: 150px;
+    max-width: 200px;
     width: 14%;
     overflow: hidden;
     white-space: nowrap;

@@ -18,6 +18,7 @@ var should = require("should");
 var sinon = require("sinon");
 var when = require("when");
 var request = require('supertest');
+var express = require("express");
 var nock;
 if (!process.version.match(/^v0\.[0-9]\./)) {
     // only set nock for node >= 0.10
@@ -55,12 +56,12 @@ module.exports = {
         logSpy = sinon.spy(log,"log");
         logSpy.FATAL = log.FATAL;
         logSpy.ERROR = log.ERROR;
-        logSpy.WARN = log.WARN;  
-        logSpy.INFO = log.INFO;   
-        logSpy.DEBUG = log.DEBUG; 
-        logSpy.TRACE = log.TRACE;  
-        logSpy.METRIC = log.METRIC; 
-        
+        logSpy.WARN = log.WARN;
+        logSpy.INFO = log.INFO;
+        logSpy.DEBUG = log.DEBUG;
+        logSpy.TRACE = log.TRACE;
+        logSpy.METRIC = log.METRIC;
+
         if (typeof testCredentials === 'function') {
             cb = testCredentials;
             testCredentials = {};
@@ -86,14 +87,14 @@ module.exports = {
         };
 
         redNodes.init(settings, storage);
-        credentials.init(storage);
+        credentials.init(storage,express());
         RED.nodes.registerType("helper", helperNode);
         if (Array.isArray(testNode)) {
             for (var i = 0; i < testNode.length; i++) {
                 testNode[i](RED);
             }
         } else {
-            testNode(RED);            
+            testNode(RED);
         }
         flows.load().then(function() {
             should.deepEqual(testFlows, flows.getFlows());
@@ -137,14 +138,17 @@ module.exports = {
     //TODO consider saving TCP handshake/server reinit on start/stop/start sequences
     stopServer: function(done) {
         if(server) {
-            server.close(done);
+            try {
+                server.close(done);
+            } catch(e) {
+                done();
+            }
         }
     },
 
     url: function() { return url; },
 
     nock: nock,
-    
+
     log: function() { return logSpy;}
 };
-

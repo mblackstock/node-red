@@ -17,16 +17,15 @@
 var should = require("should");
 var request = require("supertest");
 var express = require("express");
+var when = require("when");
 var fs = require("fs");
 var path = require("path");
-
 var settings = require("../../../red/settings");
 var api = require("../../../red/api");
 
-
 describe("api index", function() {
     var app;
-    
+
     describe("disables editor", function() {
         before(function() {
             settings.init({disableEditor:true});
@@ -36,7 +35,7 @@ describe("api index", function() {
         after(function() {
             settings.reset();
         });
-        
+
         it('does not serve the editor', function(done) {
             request(app)
                 .get("/")
@@ -53,7 +52,30 @@ describe("api index", function() {
                 .expect(200,done)
         });
     });
-    
+
+    describe("can serve auth", function() {
+        before(function() {
+            //settings.init({disableEditor:true});
+            settings.init({adminAuth:{type: "credentials",users:[],default:{permissions:"read"}}});
+            app = express();
+            api.init(app,{getSessions:function(){return when.resolve({})}});
+        });
+        after(function() {
+            settings.reset();
+        });
+
+        it('it now serves auth', function(done) {
+            request(app)
+                .get("/auth/login")
+                .expect(200)
+                .end(function(err,res) {
+                    if (err) { return done(err); }
+                    res.body.type.should.equal("credentials");
+                    done();
+                });
+        });
+    });
+
     describe("enables editor", function() {
         before(function() {
             settings.init({disableEditor:false});
@@ -63,7 +85,7 @@ describe("api index", function() {
         after(function() {
             settings.reset();
         });
-        
+
         it('serves the editor', function(done) {
             request(app)
                 .get("/")
@@ -87,6 +109,11 @@ describe("api index", function() {
             request(app)
                 .get("/settings")
                 .expect(200,done)
+        });
+        it('handles page not there', function(done) {
+            request(app)
+                .get("/foo")
+                .expect(404,done)
         });
     });
 });

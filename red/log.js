@@ -17,7 +17,6 @@
 var util = require("util");
 var EventEmitter = require("events").EventEmitter;
 
-
 var levels = {
     off:    1,
     fatal:  10,
@@ -27,7 +26,8 @@ var levels = {
     debug:  50,
     trace:  60,
     metric: 99
-}
+};
+
 var levelNames = {
     10: "fatal",
     20: "error",
@@ -36,7 +36,7 @@ var levelNames = {
     50: "debug",
     60: "trace",
     99: "metric"
-}
+};
 
 var logHandlers = [];
 
@@ -70,7 +70,7 @@ var log = module.exports = {
     DEBUG:  50,
     TRACE:  60,
     METRIC: 99,
-    
+
     init: function(settings) {
         logHandlers = [];
         var consoleSettings = {};
@@ -79,11 +79,9 @@ var log = module.exports = {
         }
         log.addHandler(new ConsoleLogHandler(consoleSettings));
     },
-        
     addHandler: function(func) {
         logHandlers.push(func);
     },
-    
     log: function(msg) {
         msg.timestamp = Date.now();
         logHandlers.forEach(function(handler) {
@@ -105,10 +103,7 @@ var log = module.exports = {
     debug: function(msg) {
         log.log({level:log.DEBUG,msg:msg});
     },
-    
-    
     metric: function() {
         return metricsEnabled;
     }
 }
-

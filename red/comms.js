@@ -40,12 +40,11 @@ function start() {
     var Tokens = require("./api/auth/tokens");
     var Users = require("./api/auth/users");
     var Permissions = require("./api/auth/permissions");
-    
     if (!settings.disableEditor) {
         Users.default().then(function(anonymousUser) {
             var webSocketKeepAliveTime = settings.webSocketKeepAliveTime || 15000;
             var path = settings.httpAdminRoot || "/";
-            path = path + (path.slice(-1) == "/" ? "":"/") + "comms";
+            path = (path.slice(0,1) != "/" ? "/":"") + path + (path.slice(-1) == "/" ? "":"/") + "comms";
             wsServer = new ws.Server({server:server,path:path});
             
             wsServer.on('connection',function(ws) {
@@ -72,8 +71,8 @@ function start() {
                             handleRemoteSubscription(ws,msg.subscribe);
                         }
                     } else {
-                        var completeConnection = function(user,sendAck) {
-                            if (!user || !Permissions.hasPermission(user,"status.read")) {
+                        var completeConnection = function(userScope,sendAck) {
+                            if (!userScope || !Permissions.hasPermission(userScope,"status.read")) {
                                 ws.close();
                             } else {
                                 pendingAuth = false;
@@ -88,14 +87,22 @@ function start() {
                             Tokens.get(msg.auth).then(function(client) {
                                 if (client) {
                                     Users.get(client.user).then(function(user) {
-                                        completeConnection(user,true);
+                                        if (user) {
+                                            completeConnection(client.scope,true);
+                                        } else {
+                                            completeConnection(null,false);
+                                        }
                                     });
                                 } else {
                                     completeConnection(null,false);
                                 }
                             });
                         } else {
-                            completeConnection(anonymousUser,false);
+                            if (anonymousUser) {
+                                completeConnection(anonymousUser.permissions,false);
+                            } else {
+                                completeConnection(null,false);
+                            }
                             //TODO: duplicated code - pull non-auth message handling out
                             if (msg.subscribe) {
                                 handleRemoteSubscription(ws,msg.subscribe);
@@ -127,9 +134,11 @@ function start() {
 function stop() {
     if (heartbeatTimer) {
         clearInterval(heartbeatTimer);
+        heartbeatTimer = null;
     }
     if (wsServer) {
         wsServer.close();
+        wsServer = null;
     }
 }
 

@@ -16,10 +16,8 @@
 
 module.exports = function(RED) {
     "use strict";
-    var util = require("util");
     var ArduinoFirmata = require('arduino-firmata');
     var fs = require('fs');
-    var plat = require('os').platform();
     var portlist = ArduinoFirmata.list(function (err, ports) {
         portlist = ports;
     });
@@ -33,14 +31,14 @@ module.exports = function(RED) {
         var node = this;
         node.board = new ArduinoFirmata();
         if (portlist.indexOf(node.device) === -1) {
-            node.warn("Device "+node.device+" not found");
+            node.error("device "+node.device+" not found");
         }
         else {
             node.board.connect(node.device);
         }
 
         node.board.on('boardReady', function(){
-            node.log("version "+node.board.boardVersion);
+            if (RED.settings.verbose) { node.log("version "+node.board.boardVersion); }
         });
 
         node.on('close', function(done) {
@@ -48,7 +46,7 @@ module.exports = function(RED) {
                 try {
                     node.board.close(function() {
                         done();
-                        node.log("port closed");
+                        if (RED.settings.verbose) { node.log("port closed"); }
                     });
                 } catch(e) { done(); }
             } else { done(); }
@@ -67,10 +65,8 @@ module.exports = function(RED) {
         this.serverConfig = RED.nodes.getNode(this.arduino);
         if (typeof this.serverConfig === "object") {
             this.board = this.serverConfig.board;
-            //this.repeat = this.serverConfig.repeat;
             var node = this;
             node.status({fill:"red",shape:"ring",text:"connecting"});
-
             node.board.on('connect', function() {
                 node.status({fill:"green",shape:"dot",text:"connected"});
                 //console.log("i",node.state,node.pin);
@@ -81,9 +77,8 @@ module.exports = function(RED) {
                             node.send(msg);
                         }
                     });
-
                 }
-                else {
+                if (node.state == "INPUT") {
                     node.board.pinMode(node.pin, ArduinoFirmata.INPUT);
                     node.board.on('digitalChange', function(e) {
                         if (e.pin == node.pin) {
@@ -92,10 +87,16 @@ module.exports = function(RED) {
                         }
                     });
                 }
+                if (node.state == "SYSEX") {
+                    node.board.on('sysex', function(e) {
+                        var msg = {payload:e, topic:"sysex"};
+                        node.send(msg);
+                    });
+                }
             });
         }
         else {
-            util.log("[Firmata-arduino] port not configured");
+            this.warn("port not configured");
         }
     }
     RED.nodes.registerType("arduino in",DuinoNodeIn);
@@ -119,7 +120,7 @@ module.exports = function(RED) {
                 //console.log("o",node.state,node.pin);
                 node.board.pinMode(node.pin, node.state);
                 node.on("input", function(msg) {
-                    if (node.state == "OUTPUT") {
+                    if (node.state === "OUTPUT") {
                         if ((msg.payload == true)||(msg.payload == 1)||(msg.payload.toString().toLowerCase() == "on")) {
                             node.board.digitalWrite(node.pin, true);
                         }
@@ -127,25 +128,26 @@ module.exports = function(RED) {
                             node.board.digitalWrite(node.pin, false);
                         }
                     }
-                    if (node.state == "PWM") {
+                    if (node.state === "PWM") {
                         msg.payload = msg.payload * 1;
                         if ((msg.payload >= 0) && (msg.payload <= 255)) {
-                            //console.log(msg.payload, node.pin);
                             node.board.analogWrite(node.pin, msg.payload);
                         }
                     }
-                    if (node.state == "SERVO") {
+                    if (node.state === "SERVO") {
                         msg.payload = msg.payload * 1;
                         if ((msg.payload >= 0) && (msg.payload <= 180)) {
-                            //console.log(msg.payload, node.pin);
                             node.board.servoWrite(node.pin, msg.payload);
                         }
+                    }
+                    if (node.state === "SYSEX") {
+                        node.board.sysex(msg.payload);
                     }
                 });
             });
         }
         else {
-            util.log("[Firmata-arduino] port not configured");
+            this.warn("port not configured");
         }
     }
     RED.nodes.registerType("arduino out",DuinoNodeOut);

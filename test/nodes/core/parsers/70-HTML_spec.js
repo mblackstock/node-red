@@ -140,7 +140,7 @@ describe('html node', function() {
                     logEvents.should.have.length(1);
                     // Each logEvent is the array of args passed to the function.
                     logEvents[0][0].should.have.a.property('msg');
-                    logEvents[0][0].msg.should.startWith("Error:");
+                    logEvents[0][0].should.have.a.property('level',helper.log().ERROR);
             
                     done();
                 } catch(err) {
@@ -149,7 +149,25 @@ describe('html node', function() {
             });          
         });
     });
-    
+
+    it('should pass through if payload empty', function(done) {
+        fs.readFile(file, 'utf8', function(err, data) {
+            var flow = [{id:"n1",type:"html",wires:[["n2"]],func:"return msg;"},
+                        {id:"n2", type:"helper"}];
+
+            helper.load(htmlNode, flow, function() {
+                var n1 = helper.getNode("n1");
+                var n2 = helper.getNode("n2");
+                n2.on("input", function(msg) {
+                    msg.should.have.property('topic', 'bar');
+                    msg.should.not.have.property('payload');
+                    done();
+                });
+                n1.receive({topic: "bar"});
+            });
+        });
+    });
+
     describe('multiple messages', function(){
         var cnt = 0;
         

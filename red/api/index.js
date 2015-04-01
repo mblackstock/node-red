@@ -31,14 +31,13 @@ var needsPermission = auth.needsPermission;
 var settings = require("../settings");
 
 var errorHandler = function(err,req,res,next) {
-    //TODO: standardize json response
     console.log(err.stack);
-    res.send(400,err.toString());
+    res.json(400,{error:"unexpected_error", message:err.toString()});
 };
 
-function init(adminApp) {
+function init(adminApp,storage) {
     
-    auth.init(settings);
+    auth.init(settings,storage);
     
     // Editor
     if (!settings.disableEditor) {
@@ -51,6 +50,8 @@ function init(adminApp) {
 
     adminApp.use(express.json());
     adminApp.use(express.urlencoded());
+
+    adminApp.get("/auth/login",auth.login);
     
     if (settings.adminAuth) {
         //TODO: all passport references ought to be in ./auth
@@ -61,7 +62,6 @@ function init(adminApp) {
             auth.getToken,
             auth.errorHandler
         );
-        adminApp.get("/auth/login",auth.login);
         adminApp.post("/auth/revoke",auth.revoke);
     }
 

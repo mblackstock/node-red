@@ -57,10 +57,11 @@ module.exports = function(RED) {
         });
 
         tail.stderr.on("data", function(data) {
-            node.warn(data.toString());
+            node.error(data.toString());
         });
 
         this.on("close", function() {
+            /* istanbul ignore else */
             if (tail) { tail.kill(); }
         });
     }

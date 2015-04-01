@@ -50,8 +50,8 @@ function createNode(node,def) {
     }
 }
 
-function init(_settings,storage) {
-    credentials.init(storage);
+function init(_settings,storage,app) {
+    credentials.init(storage,app);
     flows.init(storage);
     registry.init(_settings);
 }
@@ -74,7 +74,9 @@ function checkTypeInUse(id) {
         });
         if (nodesInUse.length > 0) {
             var msg = nodesInUse.join(", ");
-            throw new Error("Type in use: "+msg);
+            var err = new Error("Type in use: "+msg);
+            err.code = "type_in_use";
+            throw err;
         }
     }
 }
@@ -85,12 +87,12 @@ function removeNode(id) {
 }
 
 function removeModule(module) {
-    var info = registry.getNodeModuleInfo(module);
+    var info = registry.getModuleInfo(module);
     if (!info) {
         throw new Error("Unrecognised module: "+module);
     } else {
-        for (var i=0;i<info.length;i++) {
-            checkTypeInUse(module+"/"+info[i]);
+        for (var i=0;i<info.nodes.length;i++) {
+            checkTypeInUse(module+"/"+info.nodes[i].name);
         }
         return registry.removeModule(module);
     }
@@ -111,9 +113,6 @@ module.exports = {
     getNode: flows.get,
     eachNode: flows.eachNode,
 
-    addNode: registry.addNode,
-    removeNode: removeNode,
-
     addModule: registry.addModule,
     removeModule: removeModule,
 
@@ -127,11 +126,8 @@ module.exports = {
     getNodeInfo: registry.getNodeInfo,
     getNodeList: registry.getNodeList,
 
-    getNodeModuleInfo: registry.getNodeModuleInfo,
-
     getModuleInfo: registry.getModuleInfo,
     getModuleList: registry.getModuleList,
-    getModuleVersion: registry.getModuleVersion,
 
     getNodeConfigs: registry.getNodeConfigs,
     getNodeConfig: registry.getNodeConfig,

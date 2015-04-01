@@ -58,7 +58,6 @@ describe("red/nodes/index", function() {
     }
 
    it('nodes are initialised with credentials',function(done) {
-
         index.init(settings, storage);
         index.registerType('test', TestNode);
         index.loadFlows().then(function() {
@@ -69,7 +68,6 @@ describe("red/nodes/index", function() {
         }).otherwise(function(err) {
             done(err);
         });
-
     });
 
    it('flows should be initialised',function(done) {
@@ -128,7 +126,7 @@ describe("red/nodes/index", function() {
                    foo: {type:"test"}
                }
            });
-           var testnode = new TestNode({id:'tab1',type:'test',name:'barney'});
+           var testnode = new TestNode({id:'tab1',type:'test',name:'barney', '_alias':'tab1'});
            credentials.getDefinition("test").should.have.property('foo');
            done();
        });
@@ -149,31 +147,13 @@ describe("red/nodes/index", function() {
                    return randomNodeInfo;
                }
            });
-           sinon.stub(registry,"removeNode",function(id) {
-               return randomNodeInfo;
-           });
            sinon.stub(registry,"disableNode",function(id) {
                return randomNodeInfo;
            });
        });
        after(function() {
            registry.getNodeInfo.restore();
-           registry.removeNode.restore();
            registry.disableNode.restore();
-       });
-
-       it(': allows an unused node type to be removed',function(done) {
-            index.init(settings, storage);
-            index.registerType('test', TestNode);
-            index.loadFlows().then(function() {
-                var info = index.removeNode("5678");
-                registry.removeNode.calledOnce.should.be.true;
-                registry.removeNode.calledWith("5678").should.be.true;
-                info.should.eql(randomNodeInfo);
-                done();
-            }).otherwise(function(err) {
-                done(err);
-            });
        });
 
        it(': allows an unused node type to be disabled',function(done) {
@@ -184,21 +164,6 @@ describe("red/nodes/index", function() {
                 registry.disableNode.calledOnce.should.be.true;
                 registry.disableNode.calledWith("5678").should.be.true;
                 info.should.eql(randomNodeInfo);
-                done();
-            }).otherwise(function(err) {
-                done(err);
-            });
-       });
-
-       it(': prevents removing a node type that is in use',function(done) {
-            index.init(settings, storage);
-            index.registerType('test', TestNode);
-            index.loadFlows().then(function() {
-                /*jshint immed: false */
-                (function() {
-                    index.removeNode("test");
-                }).should.throw();
-
                 done();
             }).otherwise(function(err) {
                 done(err);
@@ -220,20 +185,6 @@ describe("red/nodes/index", function() {
             });
        });
 
-       it(': prevents removing a node type that is unknown',function(done) {
-            index.init(settings, storage);
-            index.registerType('test', TestNode);
-            index.loadFlows().then(function() {
-                /*jshint immed: false */
-                (function() {
-                    index.removeNode("doesnotexist");
-                }).should.throw();
-
-                done();
-            }).otherwise(function(err) {
-                done(err);
-            });
-        });
        it(': prevents disabling a node type that is unknown',function(done) {
             index.init(settings, storage);
             index.registerType('test', TestNode);
@@ -268,13 +219,13 @@ describe("red/nodes/index", function() {
                    return randomNodeInfo;
                }
            });
-           sinon.stub(registry,"getNodeModuleInfo",function(module) {
+           sinon.stub(registry,"getModuleInfo",function(module) {
                if (module == "node-red") {
-                  return ["foo"];
+                  return {nodes:[{name:"foo"}]};
                } else if (module == "doesnotexist") {
                    return null;
                } else {
-                  return randomModuleInfo.nodes;
+                  return randomModuleInfo;
                }
            });
            sinon.stub(registry,"removeModule",function(id) {
@@ -283,7 +234,7 @@ describe("red/nodes/index", function() {
        });
        after(function() {
            registry.getNodeInfo.restore();
-           registry.getNodeModuleInfo.restore();
+           registry.getModuleInfo.restore();
            registry.removeModule.restore();
        });
 

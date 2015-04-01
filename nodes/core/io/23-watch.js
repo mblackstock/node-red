@@ -23,24 +23,35 @@ module.exports = function(RED) {
     function WatchNode(n) {
         RED.nodes.createNode(this,n);
 
-        this.files = n.files.split(",");
-        for (var f =0; f < this.files.length; f++) {
+        this.files = (n.files || "").split(",");
+        for (var f=0; f < this.files.length; f++) {
             this.files[f] = this.files[f].trim();
         }
-        this.p = (this.files.length == 1) ? this.files[0] : JSON.stringify(this.files);
+        this.p = (this.files.length === 1) ? this.files[0] : JSON.stringify(this.files);
         var node = this;
 
         var notifications = new Notify(node.files);
         notifications.on('change', function (file, event, path) {
+            var stat;
             try {
                 if (fs.statSync(path).isDirectory()) { path = path + sep + file; }
+                stat = fs.statSync(path);
             } catch(e) { }
-            var msg = { payload: path, topic: node.p, file: file };
+            var type = "other";
+            if (stat.isFile()) { type = "file"; }
+            else if (stat.isDirectory()) { type = "directory"; }
+            else if (stat.isBlockDevice()) { type = "blockdevice"; }
+            else if (stat.isCharacterDevice()) { type = "characterdevice"; }
+            else if (stat.isSocket()) { type = "socket"; }
+            else if (stat.isFIFO()) { type = "fifo"; }
+            else { type = "n/a"; }
+            var msg = { payload:path, topic:node.p, file:file, type:type, size:stat.size };
             node.send(msg);
         });
 
         notifications.on('error', function (error, path) {
-            node.warn(error);
+            var msg = { payload:path };
+            node.error(error,msg);
         });
 
         this.close = function() {

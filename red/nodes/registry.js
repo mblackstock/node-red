@@ -34,9 +34,6 @@ function filterNodeInfo(n) {
         types: n.types,
         enabled: n.enabled
     };
-    if (n.hasOwnProperty("loaded")) {
-        r.loaded = n.loaded;
-    }
     if (n.hasOwnProperty("module")) {
         r.module = n.module;
     }
@@ -66,24 +63,28 @@ var registry = (function() {
         var moduleList = {};
 
         for (var module in moduleConfigs) {
+            /* istanbul ignore else */
             if (moduleConfigs.hasOwnProperty(module)) {
-                if (!moduleList[module]) {
-                    moduleList[module] = {
-                        name: module,
-                        version: moduleConfigs[module].version,
-                        nodes: {}
-                    };
-                }
-                var nodes = moduleConfigs[module].nodes;
-                for(var node in nodes) {
-                    if (nodes.hasOwnProperty(node)) {
-                        var config = nodes[node];
-                        var n = filterNodeInfo(config);
-                        delete n.loaded;
-                        delete n.err;
-                        delete n.file;
-                        delete n.id;
-                        moduleList[module].nodes[node] = n;
+                if (Object.keys(moduleConfigs[module].nodes).length > 0) {
+                    if (!moduleList[module]) {
+                        moduleList[module] = {
+                            name: module,
+                            version: moduleConfigs[module].version,
+                            nodes: {}
+                        };
+                    }
+                    var nodes = moduleConfigs[module].nodes;
+                    for(var node in nodes) {
+                        /* istanbul ignore else */
+                        if (nodes.hasOwnProperty(node)) {
+                            var config = nodes[node];
+                            var n = filterNodeInfo(config);
+                            delete n.err;
+                            delete n.file;
+                            delete n.id;
+                            n.file = config.file;
+                            moduleList[module].nodes[node] = n;
+                        }
                     }
                 }
             }
@@ -106,6 +107,7 @@ var registry = (function() {
             // Migrate from the 0.9.1 format of settings
             var newConfigs = {};
             for (var id in configs) {
+                /* istanbul ignore else */
                 if (configs.hasOwnProperty(id)) {
                     var nodeConfig = configs[id];
                     var moduleName;
@@ -208,6 +210,7 @@ var registry = (function() {
                 infoList.push(registry.removeNode(module+"/"+nodes[i]));
             }
             delete moduleNodes[module];
+            delete moduleConfigs[module];
             saveNodeList();
             return infoList;
         },
@@ -216,25 +219,38 @@ var registry = (function() {
             if (nodeTypeToId[typeOrId]) {
                 id = nodeTypeToId[typeOrId];
             }
+            
+            /* istanbul ignore else */
             if (id) {
                 var module = moduleConfigs[getModule(id)];
                 if (module) {
                     var config = module.nodes[getNode(id)];
                     if (config) {
-                        return filterNodeInfo(config);
+                        var info = filterNodeInfo(config);
+                        if (config.hasOwnProperty("loaded")) {
+                            info.loaded = config.loaded;
+                        }
+                        info.version = module.version;
+                        return info;
                     }
                 }
             }
             return null;
         },
-        getNodeList: function() {
+        getNodeList: function(filter) {
             var list = [];
             for (var module in moduleConfigs) {
+                /* istanbul ignore else */
                 if (moduleConfigs.hasOwnProperty(module)) {
                     var nodes = moduleConfigs[module].nodes;
                     for (var node in nodes) {
+                        /* istanbul ignore else */
                         if (nodes.hasOwnProperty(node)) {
-                            list.push(filterNodeInfo(nodes[node]));
+                            var nodeInfo = filterNodeInfo(nodes[node]);
+                            nodeInfo.version = moduleConfigs[module].version;
+                            if (!filter || filter(nodes[node])) {
+                                list.push(nodeInfo);
+                            }
                         }
                     }
                 }
@@ -244,17 +260,9 @@ var registry = (function() {
         getModuleList: function() {
             var list = [];
             for (var module in moduleNodes) {
+                /* istanbul ignore else */
                 if (moduleNodes.hasOwnProperty(module)) {
-                    var nodes = moduleNodes[module];
-                    var m = {
-                        name: module,
-                        version: moduleConfigs[module].version,
-                        nodes: []
-                    };
-                    for (var i = 0; i < nodes.length; ++i) {
-                        m.nodes.push(filterNodeInfo(moduleConfigs[module].nodes[nodes[i]]));
-                    }
-                    list.push(m);
+                    list.push(registry.getModuleInfo(module));
                 }
             }
             return list;
@@ -268,15 +276,14 @@ var registry = (function() {
                     nodes: []
                 };
                 for (var i = 0; i < nodes.length; ++i) {
-                    m.nodes.push(filterNodeInfo(moduleConfigs[module].nodes[nodes[i]]));
+                    var nodeInfo = filterNodeInfo(moduleConfigs[module].nodes[nodes[i]]);
+                    nodeInfo.version = m.version;
+                    m.nodes.push(nodeInfo);
                 }
                 return m;
             } else {
                 return null;
             }
-        },
-        getModuleVersion: function(module) {
-            return moduleConfigs[module].version;
         },
         registerNodeConstructor: function(type,constructor) {
             if (nodeConstructors[type]) {
@@ -303,14 +310,14 @@ var registry = (function() {
                     var config = moduleConfigs[getModule(id)].nodes[getNode(id)];
                     if (config.enabled && !config.err) {
                         result += config.config;
-                        script += config.script;
+                        //script += config.script;
                     }
                 }
-                if (script.length > 0) {
-                    result += '<script type="text/javascript">';
-                    result += UglifyJS.minify(script, {fromString: true}).code;
-                    result += '</script>';
-                }
+                //if (script.length > 0) {
+                //    result += '<script type="text/javascript">';
+                //    result += UglifyJS.minify(script, {fromString: true}).code;
+                //    result += '</script>';
+                //}
                 nodeConfigCache = result;
             }
             return nodeConfigCache;
@@ -324,9 +331,9 @@ var registry = (function() {
             config = config.nodes[getNode(id)];
             if (config) {
                 var result = config.config;
-                if (config.script) {
-                    result += '<script type="text/javascript">'+config.script+'</script>';
-                }
+                //if (config.script) {
+                //    result += '<script type="text/javascript">'+config.script+'</script>';
+                //}
                 return result;
             } else {
                 return null;
@@ -359,10 +366,6 @@ var registry = (function() {
 
         getTypeId: function(type) {
             return nodeTypeToId[type];
-        },
-
-        getNodeModuleInfo: function(module) {
-            return moduleNodes[module];
         },
 
         enableNodeSet: function(typeOrId) {
@@ -418,12 +421,14 @@ var registry = (function() {
         cleanModuleList: function() {
             var removed = false;
             for (var mod in moduleConfigs) {
+                /* istanbul ignore else */
                 if (moduleConfigs.hasOwnProperty(mod)) {
                     var nodes = moduleConfigs[mod].nodes;
                     var node;
                     if (mod == "node-red") {
                         // For core nodes, look for nodes that are enabled, !loaded and !errored
                         for (node in nodes) {
+                            /* istanbul ignore else */
                             if (nodes.hasOwnProperty(node)) {
                                 var n = nodes[node];
                                 if (n.enabled && !n.err && !n.loaded) {
@@ -435,11 +440,13 @@ var registry = (function() {
                     } else if (moduleConfigs[mod] && !moduleNodes[mod]) {
                         // For node modules, look for missing ones
                         for (node in nodes) {
+                            /* istanbul ignore else */
                             if (nodes.hasOwnProperty(node)) {
                                 registry.removeNode(mod+"/"+node);
                                 removed = true;
                             }
                         }
+                        delete moduleConfigs[mod];
                     }
                 }
             }
@@ -504,6 +511,37 @@ function getNodeFiles(dir) {
     return result;
 }
 
+function scanDirForNodesModules(dir,moduleName) {
+    var results = [];
+    try {
+        var files = fs.readdirSync(dir);
+        for (var i=0;i<files.length;i++) {
+            var fn = files[i];
+            if (!registry.getModuleInfo(fn)) {
+                if (!moduleName || fn == moduleName) {
+                    var pkgfn = path.join(dir,fn,"package.json");
+                    try {
+                        var pkg = require(pkgfn);
+                        if (pkg['node-red']) {
+                            var moduleDir = path.join(dir,fn);
+                            results.push({dir:moduleDir,package:pkg});
+                        }
+                    } catch(err) {
+                        if (err.code != "MODULE_NOT_FOUND") {
+                            // TODO: handle unexpected error
+                        }
+                    }
+                    if (fn == moduleName) {
+                        break;
+                    }
+                }
+            }
+        }
+    } catch(err) {
+    }
+    return results;
+}
+
 /**
  * Scans the node_modules path for nodes
  * @param moduleName the name of the module to be found
@@ -512,36 +550,19 @@ function getNodeFiles(dir) {
 function scanTreeForNodesModules(moduleName) {
     var dir = __dirname+"/../../nodes";
     var results = [];
+    var userDir;
+
+    if (settings.userDir) {
+        userDir = path.join(settings.userDir,"node_modules");
+        results = results.concat(scanDirForNodesModules(userDir,moduleName));
+    }
+    
     var up = path.resolve(path.join(dir,".."));
     while (up !== dir) {
         var pm = path.join(dir,"node_modules");
-        try {
-            var files = fs.readdirSync(pm);
-            for (var i=0;i<files.length;i++) {
-                var fn = files[i];
-                if (!registry.getNodeModuleInfo(fn)) {
-                    if (!moduleName || fn == moduleName) {
-                        var pkgfn = path.join(pm,fn,"package.json");
-                        try {
-                            var pkg = require(pkgfn);
-                            if (pkg['node-red']) {
-                                var moduleDir = path.join(pm,fn);
-                                results.push({dir:moduleDir,package:pkg});
-                            }
-                        } catch(err) {
-                            if (err.code != "MODULE_NOT_FOUND") {
-                                // TODO: handle unexpected error
-                            }
-                        }
-                        if (fn == moduleName) {
-                            break;
-                        }
-                    }
-                }
-            }
-        } catch(err) {
+        if (pm != userDir) {
+            results = results.concat(scanDirForNodesModules(pm,moduleName));
         }
-
         dir = up;
         up = path.resolve(path.join(dir,".."));
     }
@@ -558,6 +579,7 @@ function loadNodesFromModule(moduleDir,pkg) {
     var results = [];
     var iconDirs = [];
     for (var n in nodes) {
+        /* istanbul ignore else */
         if (nodes.hasOwnProperty(n)) {
             var file = path.join(moduleDir,nodes[n]);
             try {
@@ -595,9 +617,7 @@ function loadNodesFromModule(moduleDir,pkg) {
 function loadNodeConfig(file,module,name,version) {
     var id = module + "/" + name;
     var info = registry.getNodeInfo(id);
-
     var isEnabled = true;
-
     if (info) {
         if (info.hasOwnProperty("loaded")) {
             throw new Error(file+" already loaded");
@@ -630,8 +650,7 @@ function loadNodeConfig(file,module,name,version) {
         node.config = content;
 
         // TODO: parse out the javascript portion of the template
-        node.script = "";
-
+        //node.script = "";
         for (var i=0;i<node.types.length;i++) {
             if (registry.getTypeId(node.types[i])) {
                 node.err = node.types[i]+" already registered";
@@ -661,14 +680,19 @@ function load(defaultNodesDir,disableNodePathScan) {
     return when.promise(function(resolve,reject) {
         // Find all of the nodes to load
         var nodeFiles;
+        var dir;
         if(defaultNodesDir) {
             nodeFiles = getNodeFiles(path.resolve(defaultNodesDir));
         } else {
             nodeFiles = getNodeFiles(__dirname+"/../../nodes");
         }
 
+        if (settings.userDir) {
+            dir = path.join(settings.userDir,"nodes");
+            nodeFiles = nodeFiles.concat(getNodeFiles(dir));
+        }
         if (settings.nodesDir) {
-            var dir = settings.nodesDir;
+            dir = settings.nodesDir;
             if (typeof settings.nodesDir == "string") {
                 dir = [dir];
             }
@@ -779,25 +803,12 @@ function loadNodeList(nodes) {
     });
 }
 
-function addNode(file) {
-    if (!settings.available()) {
-        throw new Error("Settings unavailable");
-    }
-    var nodes = [];
-    try {
-        nodes.push(loadNodeConfig(file,"node-red",path.basename(file).replace(/^\d+-/,"").replace(/\.js$/,""),settings.version));
-    } catch(err) {
-        return when.reject(err);
-    }
-    return loadNodeList(nodes);
-}
-
 function addModule(module) {
     if (!settings.available()) {
         throw new Error("Settings unavailable");
     }
     var nodes = [];
-    if (registry.getNodeModuleInfo(module)) {
+    if (registry.getModuleInfo(module)) {
         return when.reject(new Error("Module already loaded"));
     }
     var moduleFiles = scanTreeForNodesModules(module);
@@ -809,7 +820,9 @@ function addModule(module) {
     moduleFiles.forEach(function(moduleFile) {
         nodes = nodes.concat(loadNodesFromModule(moduleFile.dir,moduleFile.package));
     });
-    return loadNodeList(nodes);
+    return loadNodeList(nodes).then(function() {
+        return registry.getModuleInfo(module);
+    });
 }
 
 module.exports = {
@@ -822,17 +835,12 @@ module.exports = {
     getNodeInfo: registry.getNodeInfo,
     getNodeList: registry.getNodeList,
 
-    getNodeModuleInfo: registry.getNodeModuleInfo,
-
     getModuleInfo: registry.getModuleInfo,
     getModuleList: registry.getModuleList,
-    getModuleVersion: registry.getModuleVersion,
 
     getNodeConfigs: registry.getAllNodeConfigs,
     getNodeConfig: registry.getNodeConfig,
 
-    addNode: addNode,
-    removeNode: registry.removeNode,
     enableNode: registry.enableNodeSet,
     disableNode: registry.disableNodeSet,
 

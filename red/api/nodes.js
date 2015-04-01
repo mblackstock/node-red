@@ -37,22 +37,20 @@ module.exports = {
 
     post: function(req,res) {
         if (!settings.available()) {
-            res.send(400,new Error("Settings unavailable").toString());
+            res.json(400,{error:"settings_unavailable", message:"Settings unavailable"});
             return;
         }
         var node = req.body;
         var promise;
-        if (node.file) {
-            promise = redNodes.addNode(node.file).then(server.reportAddedModules);
-        } else if (node.module) {
-            var module = redNodes.getNodeModuleInfo(node.module);
+        if (node.module) {
+            var module = redNodes.getModuleInfo(node.module);
             if (module) {
-                res.send(400,"Module already loaded");
+                res.json(400,{error:"module_already_loaded", message:"Module already loaded"});
                 return;
             }
             promise = server.installModule(node.module);
         } else {
-            res.send(400,"Invalid request");
+            res.json(400,{error:"invalid_request", message:"Invalid request"});
             return;
         }
         promise.then(function(info) {
@@ -61,20 +59,20 @@ module.exports = {
             if (err.code === 404) {
                 res.send(404);
             } else {
-                res.send(400,err.toString());
+                res.json(400,{error:err.code||"unexpected_error", message:err.toString()});
             }
         });
     },
 
     delete: function(req,res) {
         if (!settings.available()) {
-            res.send(400,new Error("Settings unavailable").toString());
+            res.json(400,{error:"settings_unavailable", message:"Settings unavailable"});
             return;
         }
         var mod = req.params.mod;
         try {
             var promise = null;
-            var module = redNodes.getNodeModuleInfo(mod);
+            var module = redNodes.getModuleInfo(mod);
             if (!module) {
                 res.send(404);
                 return;
@@ -85,10 +83,10 @@ module.exports = {
             promise.then(function() {
                 res.send(204);
             }).otherwise(function(err) {
-                res.send(400,err.toString());
+                res.json(400,{error:err.code||"unexpected_error", message:err.toString()});
             });
         } catch(err) {
-            res.send(400,err.toString());
+            res.json(400,{error:err.code||"unexpected_error", message:err.toString()});
         }
     },
 
@@ -98,7 +96,7 @@ module.exports = {
         if (req.get("accept") === "application/json") {
             result = redNodes.getNodeInfo(id);
             if (result) {
-                result.version = redNodes.getModuleVersion(req.params.mod);
+                delete result.loaded;
             }
         } else {
             result = redNodes.getNodeConfig(id);
@@ -114,26 +112,20 @@ module.exports = {
         var module = req.params.mod;
         var result = redNodes.getModuleInfo(module);
         if (result) {
-            res.send(result);
+            res.json(result);
         } else {
-            // check if module is actually a node-set
-            var matching = getMatchingNodes(module);
-            if (matching.length > 0) {
-                res.json(matching);
-            } else {
-                res.send(404);
-            }
+            res.send(404);
         }
     },
 
     putSet: function(req,res) {
         if (!settings.available()) {
-            res.send(400,new Error("Settings unavailable").toString());
+            res.json(400,{error:"settings_unavailable", message:"Settings unavailable"});
             return;
         }
         var body = req.body;
         if (!body.hasOwnProperty("enabled")) {
-            res.send(400,"Invalid request");
+            res.json(400,{error:"invalid_request", message:"Invalid request"});
             return;
         }
         try {
@@ -143,45 +135,29 @@ module.exports = {
             if (!node) {
                 res.send(404);
             } else {
+                delete node.loaded;
                 res.json(putNode(node, body.enabled));
             }
         } catch(err) {
-            res.send(400,err.toString());
+            res.json(400,{error:err.code||"unexpected_error", message:err.toString()});
         }
     },
 
     putModule: function(req,res) {
         if (!settings.available()) {
-            res.send(400,new Error("Settings unavailable").toString());
+            res.json(400,{error:"settings_unavailable", message:"Settings unavailable"});
             return;
         }
         var body = req.body;
         if (!body.hasOwnProperty("enabled")) {
-            res.send(400,"Invalid request");
+            res.json(400,{error:"invalid_request", message:"Invalid request"});
             return;
         }
         try {
             var mod = req.params.mod;
             var module = redNodes.getModuleInfo(mod);
             if (!module) {
-                var matching = getMatchingNodes(mod);
-                if (matching.length === 1) {
-                    // One match, assume correct
-                    res.json(putNode(matching[0], body.enabled));
-                    return;
-                } else if (matching.length > 1) {
-                    // Multiple matches, need clarification
-                    result = {
-                        multipleMatches: true,
-                        matches: matching
-                    };
-                    res.json(result);
-                    return;
-                } else {
-                    // Doesn't exist
-                    res.send(404);
-                    return;
-                }
+                return res.send(404);
             }
 
             var nodes = module.nodes;
@@ -208,24 +184,10 @@ module.exports = {
             }
             res.json(redNodes.getModuleInfo(mod));
         } catch(err) {
-            res.send(400,err.toString());
+            res.json(400,{error:err.code||"unexpected_error", message:err.toString()});
         }
     }
 };
-
-function getMatchingNodes(node) {
-    var nodes = redNodes.getNodeList();
-    var matching = [];
-
-    nodes.forEach(function(n) {
-        if (n.name === node) {
-            n.version = redNodes.getModuleVersion(n.module);
-            matching.push(n);
-        }
-    });
-
-    return matching;
-}
 
 function putNode(node, enabled) {
     var info;

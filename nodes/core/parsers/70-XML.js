@@ -33,7 +33,7 @@ module.exports = function(RED) {
                 }
                 else if (typeof msg.payload == "string") {
                     parseString(msg.payload, {strict:true,async:true,attrkey:node.attrkey,charkey:node.charkey}, function (err, result) {
-                        if (err) { node.error(err); }
+                        if (err) { node.error(err, msg); }
                         else {
                             msg.payload = result;
                             node.send(msg);
@@ -42,6 +42,7 @@ module.exports = function(RED) {
                 }
                 else { node.warn("This node only handles xml strings or js objects."); }
             }
+            else { node.send(msg); } // If no payload - just pass it on.
         });
     }
     RED.nodes.registerType("xml",XMLNode);

@@ -1,5 +1,5 @@
 /**
- * Copyright 2013 IBM Corp.
+ * Copyright 2013, 2015 IBM Corp.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -32,10 +32,16 @@ RED.history = (function() {
         pop: function() {
             var ev = undo_history.pop();
             var i;
+            var node;
+            var modifiedTabs = {};
             if (ev) {
                 if (ev.t == 'add') {
                     if (ev.nodes) {
                         for (i=0;i<ev.nodes.length;i++) {
+                            node = RED.nodes.node(ev.nodes[i]);
+                            if (node.z) {
+                                modifiedTabs[node.z] = true;
+                            }
                             RED.nodes.remove(ev.nodes[i]);
                         }
                     }
@@ -47,20 +53,20 @@ RED.history = (function() {
                     if (ev.workspaces) {
                         for (i=0;i<ev.workspaces.length;i++) {
                             RED.nodes.removeWorkspace(ev.workspaces[i].id);
-                            RED.view.removeWorkspace(ev.workspaces[i]);
+                            RED.workspaces.remove(ev.workspaces[i]);
                         }
                     }
                     if (ev.subflows) {
                         for (i=0;i<ev.subflows.length;i++) {
                             RED.nodes.removeSubflow(ev.subflows[i]);
-                            RED.view.removeWorkspace(ev.subflows[i]);
+                            RED.workspaces.remove(ev.subflows[i]);
                         }
                     }
                 } else if (ev.t == "delete") {
                     if (ev.workspaces) {
                         for (i=0;i<ev.workspaces.length;i++) {
                             RED.nodes.addWorkspace(ev.workspaces[i]);
-                            RED.view.addWorkspace(ev.workspaces[i]);
+                            RED.workspaces.add(ev.workspaces[i]);
                         }
                     }
                     if (ev.subflow) {
@@ -92,22 +98,21 @@ RED.history = (function() {
                         }
                     }
                     if (subflow) {
-                        RED.nodes.eachNode(function(n) {
-                            if (n.type == "subflow:"+subflow.id) {
-                                n.changed = true;
-                                n.inputs = subflow.in.length;
-                                n.outputs = subflow.out.length;
-                                while (n.outputs > n.ports.length) {
-                                    n.ports.push(n.ports.length);
-                                }
-                                n.resize = true;
-                                n.dirty = true;
+                        RED.nodes.filterNodes({type:"subflow:"+subflow.id}).forEach(function(n) {
+                            n.changed = true;
+                            n.inputs = subflow.in.length;
+                            n.outputs = subflow.out.length;
+                            while (n.outputs > n.ports.length) {
+                                n.ports.push(n.ports.length);
                             }
+                            n.resize = true;
+                            n.dirty = true;
                         });
                     }
                     if (ev.nodes) {
                         for (i=0;i<ev.nodes.length;i++) {
                             RED.nodes.add(ev.nodes[i]);
+                            modifiedTabs[ev.nodes[i].z] = true;
                         }
                     }
                     if (ev.links) {
@@ -143,13 +148,11 @@ RED.history = (function() {
                                 ev.node.out = ev.node.out.concat(ev.subflow.outputs);
                             }
                         }
-                        RED.nodes.eachNode(function(n) {
-                            if (n.type == "subflow:"+ev.node.id) {
-                                n.changed = ev.changed;
-                                n.inputs = ev.node.in.length;
-                                n.outputs = ev.node.out.length;
-                                RED.editor.updateNodeProperties(n);
-                            }
+                        RED.nodes.filterNodes({type:"subflow:"+ev.node.id}).forEach(function(n) {
+                            n.changed = ev.changed;
+                            n.inputs = ev.node.in.length;
+                            n.outputs = ev.node.out.length;
+                            RED.editor.updateNodeProperties(n);
                         });
                         
                         RED.palette.refresh();
@@ -166,11 +169,9 @@ RED.history = (function() {
                     ev.node.changed = ev.changed;
                 } else if (ev.t == "createSubflow") {
                     if (ev.nodes) {
-                        RED.nodes.eachNode(function(n) {
-                            if (n.z === ev.subflow.id) {
-                                n.z = ev.activeWorkspace;
-                                n.dirty = true;
-                            }
+                        RED.nodes.filterNodes({z:ev.subflow.id}).forEach(function(n) {
+                            n.z = ev.activeWorkspace;
+                            n.dirty = true;
                         });
                         for (i=0;i<ev.nodes.length;i++) {
                             RED.nodes.remove(ev.nodes[i]);
@@ -183,7 +184,7 @@ RED.history = (function() {
                     }
                     
                     RED.nodes.removeSubflow(ev.subflow);
-                    RED.view.removeWorkspace(ev.subflow);
+                    RED.workspaces.remove(ev.subflow);
                     
                     if (ev.removedLinks) {
                         for (i=0;i<ev.removedLinks.length;i++) {
@@ -191,8 +192,17 @@ RED.history = (function() {
                         }
                     }
                 }
-                RED.view.dirty(ev.dirty);
-                RED.view.redraw();
+                Object.keys(modifiedTabs).forEach(function(id) {
+                    var subflow = RED.nodes.subflow(id);
+                    if (subflow) {
+                        RED.editor.validateNode(subflow);
+                    }
+                });
+
+                
+                RED.nodes.dirty(ev.dirty);
+                RED.view.redraw(true);
+                RED.palette.refresh();
             }
         }
     }

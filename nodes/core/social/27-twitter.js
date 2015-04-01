@@ -218,7 +218,7 @@ module.exports = function(RED) {
                                     }
                                 });
                                 stream.on('limit', function(tweet) {
-                                    node.log("tweet rate limit hit");
+                                    node.warn("tweet rate limit hit");
                                 });
                                 stream.on('error', function(tweet,rc) {
                                     if (rc == 420) {
@@ -280,48 +280,51 @@ module.exports = function(RED) {
                 access_token_secret: credentials.access_token_secret
             });
             node.on("input", function(msg) {
-                node.status({fill:"blue",shape:"dot",text:"tweeting"});
+                if (msg.hasOwnProperty("payload")) {
+                    node.status({fill:"blue",shape:"dot",text:"tweeting"});
 
-                if (msg.payload.length > 140) {
-                    msg.payload = msg.payload.slice(0,139);
-                    node.warn("Tweet greater than 140 : truncated");
-                }
+                    if (msg.payload.length > 140) {
+                        msg.payload = msg.payload.slice(0,139);
+                        node.warn("Tweet greater than 140 : truncated");
+                    }
 
-                if (msg.media && Buffer.isBuffer(msg.media)) {
-                    var apiUrl = "https://api.twitter.com/1.1/statuses/update_with_media.json";
-                    var signedUrl = oa.signUrl(apiUrl,
-                        credentials.access_token,
-                        credentials.access_token_secret,
-                        "POST");
+                    if (msg.media && Buffer.isBuffer(msg.media)) {
+                        var apiUrl = "https://api.twitter.com/1.1/statuses/update_with_media.json";
+                        var signedUrl = oa.signUrl(apiUrl,
+                            credentials.access_token,
+                            credentials.access_token_secret,
+                            "POST");
 
-                    var r = request.post(signedUrl,function(err,httpResponse,body) {
-                        if (err) {
-                            node.error(err.toString());
-                            node.status({fill:"red",shape:"ring",text:"failed"});
-                        } else {
-                            var response = JSON.parse(body);
-                            if (response.errors) {
-                                var errorList = response.errors.map(function(er) { return er.code+": "+er.message }).join(", ");
-                                node.error("tweet failed: "+errorList);
+                        var r = request.post(signedUrl,function(err,httpResponse,body) {
+                            if (err) {
+                                node.error(err,msg);
                                 node.status({fill:"red",shape:"ring",text:"failed"});
                             } else {
-                                node.status({});
+                                var response = JSON.parse(body);
+                                if (response.errors) {
+                                    var errorList = response.errors.map(function(er) { return er.code+": "+er.message }).join(", ");
+                                    node.error("Send tweet failed: "+errorList,msg);
+                                    node.status({fill:"red",shape:"ring",text:"failed"});
+                                } else {
+                                    node.status({});
+                                }
                             }
-                        }
-                    });
-                    var form = r.form();
-                    form.append("status",msg.payload);
-                    form.append("media[]",msg.media,{filename:"image"});
+                        });
+                        var form = r.form();
+                        form.append("status",msg.payload);
+                        form.append("media[]",msg.media,{filename:"image"});
 
-                } else {
-                    twit.updateStatus(msg.payload, function (err, data) {
-                        if (err) {
-                            node.status({fill:"red",shape:"ring",text:"failed"});
-                            node.error(err);
-                        }
-                        node.status({});
-                    });
+                    } else {
+                        twit.updateStatus(msg.payload, function (err, data) {
+                            if (err) {
+                                node.status({fill:"red",shape:"ring",text:"failed"});
+                                node.error(err,msg);
+                            }
+                            node.status({});
+                        });
+                    }
                 }
+                else { node.warn("No payload to tweet"); }
             });
         }
     }
@@ -367,8 +370,8 @@ module.exports = function(RED) {
             credentials.oauth_verifier,
             function(error, oauth_access_token, oauth_access_token_secret, results){
                 if (error){
-                    console.log(error);
-                    res.send("yeah something broke.");
+                    RED.log.error(error);
+                    res.send("something in twitter oauth broke.");
                 } else {
                     credentials = {};
                     credentials.access_token = oauth_access_token;

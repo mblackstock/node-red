@@ -21,7 +21,7 @@ var typeRegistry = require("./registry");
 var credentials = require("./credentials");
 var redUtil = require("../util");
 var events = require("../events");
-var log = require("../log");
+var Log = require("../log");
 
 function getID() {
     return (1+Math.random()*4294967295).toString(16);
@@ -35,10 +35,15 @@ function createNode(type,config) {
             nn = new nt(clone(config));
         }
         catch (err) {
-            log.warn(type+" : "+err);
+            Log.log({
+                level: Log.ERROR,
+                id:config.id,
+                type: type,
+                msg: err
+            });
         }
     } else {
-        log.warn("unknown type: "+type);
+        Log.error("Unknown type: "+type);
     }
     return nn;
 }
@@ -60,6 +65,7 @@ function createSubflow(sf,sfn,subflows) {
         node_map[node.id] = node;
         node._alias = node.id;
         node.id = nid;
+        node.z = sfn.id;
         newNodes.push(node);
     }
     // Update all subflow interior wiring to reflect new node IDs
@@ -80,6 +86,7 @@ function createSubflow(sf,sfn,subflows) {
     var subflowInstance = {
         id: sfn.id,
         type: sfn.type,
+        z: sfn.z,
         name: sfn.name,
         wires: []
     }
@@ -158,7 +165,7 @@ function createSubflow(sf,sfn,subflows) {
                     if (!node._originalWires) {
                         node._originalWires = clone(node.wires);
                     }
-                    node.wires[wires[j].port] = node.wires[wires[j].port].concat(sfn.wires[i]);
+                    node.wires[wires[j].port] = (node.wires[wires[j].port]||[]).concat(sfn.wires[i]);
                 }
             }
         }
@@ -203,6 +210,47 @@ function diffNodeConfigs(oldNode,newNode) {
     return false;
 }
 
+function createCatchNodeMap(nodes) {
+    var catchNodes = {};
+    var subflowInstances = {};
+    var id;
+    /*
+     - a catchNode with same z as error node
+     - if error occurs on a subflow without catchNode, look at z of subflow instance
+    */
+    for (id in nodes) {
+        if (nodes.hasOwnProperty(id)) {
+            if (nodes[id].type === "catch") {
+                catchNodes[nodes[id].z] = nodes[id];
+            }
+        }
+    }
+    for (id in nodes) {
+        if (nodes.hasOwnProperty(id)) {
+            var m = /^subflow:(.+)$/.exec(nodes[id].type);
+            if (m) {
+                subflowInstances[id] = nodes[id];
+            }
+        }
+    }
+    for (id in subflowInstances) {
+        if (subflowInstances.hasOwnProperty(id)) {
+            var z = id;
+            while(subflowInstances[z]) {
+                var sfi = subflowInstances[z];
+                if (!catchNodes[z]) {
+                    z = sfi.z;
+                } else {
+                    break;
+                }
+            }
+            if (catchNodes[z]) {
+                catchNodes[id] = catchNodes[z];
+            }
+        }
+    }
+    return catchNodes;
+}
 
 var subflowInstanceRE = /^subflow:(.+)$/;
 
@@ -210,6 +258,7 @@ function Flow(config) {
     
     this.activeNodes = {};
     this.subflowInstanceNodes = {};
+    this.catchNodeMap = {};
     this.started = false;
 
     this.parseConfig(config);
@@ -228,11 +277,14 @@ Flow.prototype.parseConfig = function(config) {
     this.nodes = {};
     this.subflows = {};
     
+    this.configNodes = {};
+    
     var unknownTypes = {};
     
     for (i=0;i<this.config.length;i++) {
         nodeConfig = this.config[i];
         nodeType = nodeConfig.type;
+        this.allNodes[nodeConfig.id] = nodeConfig;
         if (nodeType == "subflow") {
             this.subflows[nodeConfig.id] = {
                 type: "subflow",
@@ -243,11 +295,9 @@ Flow.prototype.parseConfig = function(config) {
         
     }
     //console.log("Known subflows:",Object.keys(this.subflows));
-    
     for (i=0;i<this.config.length;i++) {
         nodeConfig = this.config[i];
         
-        this.allNodes[nodeConfig.id] = nodeConfig;
         
         nodeType = nodeConfig.type;
         
@@ -273,6 +323,16 @@ Flow.prototype.parseConfig = function(config) {
                 } else {
                     this.nodes[nodeConfig.id] = nodeInfo;
                 }
+                for (var prop in nodeConfig) {
+                    if (nodeConfig.hasOwnProperty(prop) &&
+                        prop != "type" &&
+                        prop != "id" && 
+                        prop != "z" && 
+                        prop != "wires" &&
+                        this.allNodes[nodeConfig[prop]]) {
+                            this.configNodes[nodeConfig[prop]] = this.allNodes[nodeConfig[prop]];
+                    }
+                }
             }
         }
     }
@@ -296,17 +356,37 @@ Flow.prototype.parseConfig = function(config) {
     this.missingTypes = Object.keys(unknownTypes);    
 }
 
-Flow.prototype.start = function() {
+Flow.prototype.start = function(configDiff) {
+    if (configDiff) {
+        for (var j=0;j<configDiff.rewire.length;j++) {
+            var rewireNode = this.activeNodes[configDiff.rewire[j]];
+            if (rewireNode) {
+                rewireNode.updateWires(this.allNodes[rewireNode.id].wires);
+            }
+        }
+    }
+    
     this.started = true;
     if (this.missingTypes.length > 0) {
         throw new Error("missing types");
     }
-    
     events.emit("nodes-starting");
-
-    for (var id in this.nodes) {
+    
+    var id;
+    var node;
+    
+    for (id in this.configNodes) {
+        if (this.configNodes.hasOwnProperty(id)) {
+            node = this.configNodes[id];
+            if (!this.activeNodes[id]) {
+                this.activeNodes[id] = createNode(node.type,node);
+            }
+        }
+    }
+    
+    for (id in this.nodes) {
         if (this.nodes.hasOwnProperty(id)) {
-            var node = this.nodes[id];
+            node = this.nodes[id];
             if (!node.subflow) {
                 if (!this.activeNodes[id]) {
                     this.activeNodes[id] = createNode(node.type,node.config);
@@ -328,12 +408,21 @@ Flow.prototype.start = function() {
             }
         }
     }
+    
+    this.catchNodeMap = createCatchNodeMap(this.activeNodes);
+    
     credentials.clean(this.config);
     events.emit("nodes-started");
 }
 
-Flow.prototype.stop = function(nodeList) {
-    nodeList = nodeList || Object.keys(this.activeNodes);
+Flow.prototype.stop = function(configDiff) {
+    var nodeList;
+    
+    if (configDiff) {
+        nodeList = configDiff.stop;
+    } else {
+        nodeList = Object.keys(this.activeNodes);
+    }
     var flow = this;
     return when.promise(function(resolve) {
         events.emit("nodes-stopping");
@@ -373,8 +462,10 @@ Flow.prototype.typeRegistered = function(type) {
             if (this.missingTypes.length === 0 && this.started) {
                 this.start();
             }
+            return true;
         }
     }
+    return false;
     
 }
 
@@ -395,14 +486,13 @@ Flow.prototype.eachNode = function(callback) {
     }
 }
 
-Flow.prototype.applyConfig = function(config,type) {
+Flow.prototype.diffConfig = function(config,type) {
     
     var activeNodesToStop = [];
     var nodesToRewire = [];
     
     if (type && type!="full") {
-        var diff = this.diffFlow(config);
-        //console.log(diff);
+        var diff = diffFlow(this,config);
         //var diff = {
         //    deleted:[]
         //    changed:[]
@@ -411,15 +501,12 @@ Flow.prototype.applyConfig = function(config,type) {
         //}
         
         var nodesToStop = [];
-        var nodesToCreate = [];
         nodesToRewire = diff.wiringChanged;
         
         if (type == "nodes") {
             nodesToStop = diff.deleted.concat(diff.changed);
-            nodesToCreate = diff.changed;
         } else if (type == "flows") {
             nodesToStop = diff.deleted.concat(diff.changed).concat(diff.linked);
-            nodesToCreate = diff.changed.concat(diff.linked);
         }
         
         for (var i=0;i<nodesToStop.length;i++) {
@@ -433,25 +520,24 @@ Flow.prototype.applyConfig = function(config,type) {
     } else {
         activeNodesToStop = Object.keys(this.activeNodes);
     }
-        
-    var flow = this;
-    return this.stop(activeNodesToStop).then(function() {
-        flow.parseConfig(config);
-        for (var i=0;i<nodesToRewire.length;i++) {
-            var node = flow.activeNodes[nodesToRewire[i]];
-            if (node) {
-                node.updateWires(flow.allNodes[node.id].wires);
-            }
-        }
-        flow.start();
-    })
+    
+    return {
+        type: type,
+        stop: activeNodesToStop,
+        rewire: nodesToRewire,
+        config: config
+    }
 }
 
-Flow.prototype.diffFlow = function(config) {
-    var flow = this;
-    var configNodes = {};
+function diffFlow(flow,config) {
+    
+    //if (!flow.started) {
+    //    throw new Error("Cannot diff an unstarted flow");
+    //}
+    var flowNodes = {};
     var changedNodes = {};
     var deletedNodes = {};
+    var deletedTabs = {};
     var linkChangedNodes = {};
     
     var activeLinks = {};
@@ -478,7 +564,7 @@ Flow.prototype.diffFlow = function(config) {
     }
     
     config.forEach(function(node) {
-        configNodes[node.id] = node;
+        flowNodes[node.id] = node;
     });
     
     config.forEach(function(node) {
@@ -489,7 +575,7 @@ Flow.prototype.diffFlow = function(config) {
         } else {
             changed = diffNodeConfigs(flow.allNodes[node.id],node);
             if (!changed) {
-                if (configNodes[node.z] && configNodes[node.z].type == "subflow") {
+                if (flowNodes[node.z] && flowNodes[node.z].type == "subflow") {
                     var originalNode = flow.allNodes[node.id];
                     if (originalNode && !redUtil.compareObjects(originalNode.wires,node.wires)) {
                         // This is a node in a subflow whose wiring has changed. Mark subflow as changed
@@ -503,14 +589,18 @@ Flow.prototype.diffFlow = function(config) {
         }
     });
     
-    this.config.forEach(function(node) {
-        if (!configNodes[node.id] && node.type != "tab") {
-            deletedNodes[node.id] = node;
+    flow.config.forEach(function(node) {
+        if (!flowNodes[node.id]) {
+            if (node.type != "tab") {
+                deletedNodes[node.id] = node;
+            } else {
+                deletedTabs[node.id] = node;
+            }
         }
         buildNodeLinks(activeLinks,node,flow.allNodes);
     });
     
-    this.config.forEach(function(node) {
+    flow.config.forEach(function(node) {
         for (var prop in node) {
             if (node.hasOwnProperty(prop) && prop != "z" && prop != "id" && prop != "wires") {
                 // This node has a property that references a changed node
@@ -539,7 +629,7 @@ Flow.prototype.diffFlow = function(config) {
         }
     };
     
-    Object.keys(changedNodes).forEach(function(n) { checkSubflowMembership(configNodes,n)});
+    Object.keys(changedNodes).forEach(function(n) { checkSubflowMembership(flowNodes,n)});
     Object.keys(deletedNodes).forEach(function(n) { checkSubflowMembership(flow.allNodes,n)});
     
     while (changedSubflowStack.length > 0) {
@@ -549,7 +639,7 @@ Flow.prototype.diffFlow = function(config) {
             if (node.type == "subflow:"+subflowId) {
                 if (!changedNodes[node.id]) {
                     changedNodes[node.id] = node;
-                    checkSubflowMembership(configNodes,node.id);
+                    checkSubflowMembership(flowNodes,node.id);
                 }
             }
         });
@@ -557,7 +647,7 @@ Flow.prototype.diffFlow = function(config) {
     }
     
     config.forEach(function(node) {
-        buildNodeLinks(newLinks,node,configNodes);
+        buildNodeLinks(newLinks,node,flowNodes);
     });
     
     var markLinkedNodes = function(linkChanged,otherChangedNodes,linkMap,allNodes) {
@@ -580,7 +670,7 @@ Flow.prototype.diffFlow = function(config) {
             }
         }
     }
-    markLinkedNodes(linkChangedNodes,{},newLinks,configNodes);
+    markLinkedNodes(linkChangedNodes,{},newLinks,flowNodes);
     markLinkedNodes(linkChangedNodes,{},activeLinks,flow.allNodes);
     
     var modifiedLinkNodes = {};
@@ -602,8 +692,8 @@ Flow.prototype.diffFlow = function(config) {
                     modifiedLinkNodes[node.id] = node;
                     linkChangedNodes[node.id] = node;
                     if (!changedNodes[link] && !deletedNodes[link]) {
-                        modifiedLinkNodes[link] = configNodes[link];
-                        linkChangedNodes[link] = configNodes[link];
+                        modifiedLinkNodes[link] = flowNodes[link];
+                        linkChangedNodes[link] = flowNodes[link];
                     }
                 }
             });
@@ -612,34 +702,34 @@ Flow.prototype.diffFlow = function(config) {
                     modifiedLinkNodes[node.id] = node;
                     linkChangedNodes[node.id] = node;
                     if (!changedNodes[link] && !deletedNodes[link]) {
-                        modifiedLinkNodes[link] = configNodes[link];
-                        linkChangedNodes[link] = configNodes[link];
+                        modifiedLinkNodes[link] = flowNodes[link];
+                        linkChangedNodes[link] = flowNodes[link];
                     }
                 }
             });
         }
     });
 
-    markLinkedNodes(linkChangedNodes,modifiedLinkNodes,newLinks,configNodes);
+    markLinkedNodes(linkChangedNodes,modifiedLinkNodes,newLinks,flowNodes);
     
-    //config.forEach(function(n) {
-    //    console.log((changedNodes[n.id]!=null)?"[C]":"[ ]",(linkChangedNodes[n.id]!=null)?"[L]":"[ ]","[ ]",n.id,n.type,n.name);
-    //});
-    
-    //Object.keys(deletedNodes).forEach(function(id) {
-    //    var n = flow.allNodes[id];
-    //    console.log("[ ] [ ] [D]",n.id,n.type);
-    //});
+    // config.forEach(function(n) {
+    //     console.log((changedNodes[n.id]!=null)?"[C]":"[ ]",(linkChangedNodes[n.id]!=null)?"[L]":"[ ]","[ ]",n.id,n.type,n.name);
+    // });
+    // 
+    // Object.keys(deletedNodes).forEach(function(id) {
+    //     var n = flow.allNodes[id];
+    //     console.log("[ ] [ ] [D]",n.id,n.type);
+    // });
     
     var diff = {
-        deleted: Object.keys(deletedNodes).filter(function(id) { return deletedNodes[id].type != "subflow" && (!deletedNodes[id].z || configNodes[deletedNodes[id].z].type != "subflow")}),
-        changed: Object.keys(changedNodes).filter(function(id) { return changedNodes[id].type != "subflow" && (!changedNodes[id].z || configNodes[changedNodes[id].z].type != "subflow")}),
-        linked: Object.keys(linkChangedNodes).filter(function(id) { return linkChangedNodes[id].type != "subflow" && (!linkChangedNodes[id].z || configNodes[linkChangedNodes[id].z].type != "subflow")}),
+        deleted: Object.keys(deletedNodes).filter(function(id) { return deletedNodes[id].type != "subflow" && (!deletedNodes[id].z || deletedTabs[deletedNodes[id].z] || flowNodes[deletedNodes[id].z].type != "subflow")}),
+        changed: Object.keys(changedNodes).filter(function(id) { return changedNodes[id].type != "subflow" && (!changedNodes[id].z || flowNodes[changedNodes[id].z].type != "subflow")}),
+        linked: Object.keys(linkChangedNodes).filter(function(id) { return linkChangedNodes[id].type != "subflow" && (!linkChangedNodes[id].z || flowNodes[linkChangedNodes[id].z].type != "subflow")}),
         wiringChanged: []
     }
     
     config.forEach(function(n) {
-        if (!configNodes[n.z] || configNodes[n.z].type != "subflow") {
+        if (!flowNodes[n.z] || flowNodes[n.z].type != "subflow") {
             var originalNode = flow.allNodes[n.id];
             if (originalNode && !redUtil.compareObjects(originalNode.wires,n.wires)) {
                 diff.wiringChanged.push(n.id);
@@ -648,7 +738,34 @@ Flow.prototype.diffFlow = function(config) {
     });
     
     return diff;
-    
 }
+
+
+Flow.prototype.handleError = function(node,logMessage,msg) {
+    var errorMessage;
+    if (msg) {
+        errorMessage = redUtil.cloneMessage(msg);
+    } else {
+        errorMessage = {};
+    }
+    if (errorMessage.hasOwnProperty("error")) {
+        errorMessage._error = errorMessage.error;
+    }
+    errorMessage.error = {
+        message: logMessage.toString(),
+        source: {
+            id: node.id,
+            type: node.type
+        }
+    };
+    if (this.catchNodeMap[node.z]) {
+        this.catchNodeMap[node.z].receive(errorMessage);
+    } else {
+        if (this.activeNodes[node.z] && this.catchNodeMap[this.activeNodes[node.z].z]) {
+            this.catchNodeMap[this.activeNodes[node.z].z].receive(errorMessage);
+        }
+    }
+}
+
 
 module.exports = Flow;
