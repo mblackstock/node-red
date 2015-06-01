@@ -59,7 +59,7 @@
         "passport-oauth2-client-password":"0.1.2",
         "oauth2orize":"1.0.1",
 
-        "node-red-contrib-wotkit":"0.2.3",
+        "node-red-contrib-wotkit":"0.2.4",
         "node-red-node-web-nodes":"0.3.2",
         "node-red-node-pushbullet":"0.0.5",
         "node-red-node-wordpos":"0.0.1",
