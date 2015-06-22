@@ -24,6 +24,7 @@ var nodes = require("./nodes");
 var flows = require("./flows");
 var library = require("./library");
 var info = require("./info");
+var theme = require("./theme");
 
 var auth = require("./auth");
 var needsPermission = auth.needsPermission;
@@ -41,10 +42,14 @@ function init(adminApp,storage) {
     
     // Editor
     if (!settings.disableEditor) {
+        ui.init(settings);
         var editorApp = express();
-        editorApp.get("/",ui.ensureSlash);
+        editorApp.get("/",ui.ensureSlash,ui.editor);
         editorApp.get("/icons/:icon",ui.icon);
-        editorApp.use("/",ui.editor);
+        if (settings.editorTheme) {
+            editorApp.use("/theme",theme.init(settings));
+        }
+        editorApp.use("/",ui.editorResources);
         adminApp.use(editorApp);
     }
 
@@ -62,7 +67,7 @@ function init(adminApp,storage) {
             auth.getToken,
             auth.errorHandler
         );
-        adminApp.post("/auth/revoke",auth.revoke);
+        adminApp.post("/auth/revoke",needsPermission(""),auth.revoke);
     }
 
     // Flows

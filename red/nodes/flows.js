@@ -24,7 +24,8 @@ var log = require("../log");
 var events = require("../events");
 var redUtil = require("../util");
 var storage = null;
-
+var settings = null;
+var deprecated = require("./deprecated");
 
 var activeFlow = null;
 
@@ -40,7 +41,8 @@ events.on('type-registered',function(type) {
 });
 
 var flowNodes = module.exports = {
-    init: function(_storage) {
+    init: function(_settings, _storage) {
+        settings = _settings;
         storage = _storage;
     },
     
@@ -145,8 +147,22 @@ var flowNodes = module.exports = {
             var missingTypes = activeFlow.getMissingTypes();
             if (missingTypes.length > 0) {
                 log.info("Waiting for missing types to be registered:");
+                var knownUnknowns = 0;
                 for (var i=0;i<missingTypes.length;i++) {
-                    log.info(" - "+missingTypes[i]);
+                    var type = missingTypes[i];
+                    var info = deprecated.get(type);
+                    if (info) {
+                        log.info(" - "+missingTypes[i]+" (provided by npm module "+info.module+")");
+                        knownUnknowns += 1;
+                    } else {
+                        log.info(" - "+missingTypes[i]);
+                    }
+                }
+                if (knownUnknowns > 0) {
+                    log.info("To install any of these missing modules, run:");
+                    log.info("  npm install <module name>");
+                    log.info("in the directory:");
+                    log.info("  "+settings.userDir);
                 }
             }
         }

@@ -25,6 +25,7 @@ var levels = {
     info:   40,
     debug:  50,
     trace:  60,
+    audit:  98,
     metric: 99
 };
 
@@ -35,6 +36,7 @@ var levelNames = {
     40: "info",
     50: "debug",
     60: "trace",
+    98: "audit",
     99: "metric"
 };
 
@@ -42,24 +44,34 @@ var logHandlers = [];
 
 var metricsEnabled = false;
 
-var ConsoleLogHandler = function(settings) {
-    this.logLevel = levels[settings.level]||levels.info;
-    this.metricsOn = settings.metrics||false;
-    metricsEnabled = this.metricsOn;
+var LogHandler = function(settings) {
+    this.logLevel  = settings ? levels[settings.level]||levels.info : levels.info;
+    this.metricsOn = settings ? settings.metrics||false : false;
+    this.auditOn = settings ? settings.audit||false : false;
+    
+    metricsEnabled = metricsEnabled || this.metricsOn;
+    
+    this.handler   = (settings && settings.handler) ? settings.handler(settings) : consoleLogger;
     this.on("log",function(msg) {
         if (this.shouldReportMessage(msg.level)) {
-            if (msg.level == log.METRIC) {
-                util.log("[metric] "+JSON.stringify(msg));
-            } else {
-                util.log("["+levelNames[msg.level]+"] "+(msg.type?"["+msg.type+":"+(msg.name||msg.id)+"] ":"")+msg.msg);
-            }
+            this.handler(msg);
         }
     });
 }
-util.inherits(ConsoleLogHandler, EventEmitter);
+util.inherits(LogHandler, EventEmitter);
 
-ConsoleLogHandler.prototype.shouldReportMessage = function(msglevel) {
-    return msglevel <= this.logLevel || (msglevel == log.METRIC && this.metricsOn);
+LogHandler.prototype.shouldReportMessage = function(msglevel) {
+    return (msglevel == log.METRIC && this.metricsOn) ||
+           (msglevel == log.AUDIT && this.auditOn) ||
+           msglevel <= this.logLevel;
+}
+
+var consoleLogger = function(msg) {
+    if (msg.level == log.METRIC || msg.level == log.AUDIT) {
+        util.log("["+levelNames[msg.level]+"] "+JSON.stringify(msg));
+    } else {
+        util.log("["+levelNames[msg.level]+"] "+(msg.type?"["+msg.type+":"+(msg.name||msg.id)+"] ":"")+msg.msg);
+    }
 }
 
 var log = module.exports = {
@@ -69,15 +81,29 @@ var log = module.exports = {
     INFO:   40,
     DEBUG:  50,
     TRACE:  60,
+    AUDIT:  98,
     METRIC: 99,
 
     init: function(settings) {
+        metricsEnabled = false;
         logHandlers = [];
-        var consoleSettings = {};
+        var loggerSettings = {};
         if (settings.logging) {
-            consoleSettings = settings.logging.console || {};
+            var keys = Object.keys(settings.logging);
+            if (keys.length === 0) {
+                log.addHandler(new LogHandler());
+            } else {
+                for (var i=0, l=keys.length; i<l; i++) {
+                    var config = settings.logging[keys[i]];
+                    loggerSettings = config || {};
+                    if ((keys[i] === "console") || config.handler) {
+                        log.addHandler(new LogHandler(loggerSettings));
+                    }
+                }
+            }
+        } else {
+            log.addHandler(new LogHandler());
         }
-        log.addHandler(new ConsoleLogHandler(consoleSettings));
     },
     addHandler: function(func) {
         logHandlers.push(func);
@@ -105,5 +131,15 @@ var log = module.exports = {
     },
     metric: function() {
         return metricsEnabled;
+    },
+    
+    audit: function(msg,req) {
+        msg.level = log.AUDIT;
+        if (req) {
+            msg.user = req.user;
+            msg.path = req.path;
+            msg.ip = (req.headers && req.headers['x-forwarded-for']) || (req.connection && req.connection.remoteAddress) || undefined;
+        }
+        log.log(msg);
     }
 }

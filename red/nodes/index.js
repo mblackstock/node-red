@@ -47,12 +47,14 @@ function createNode(node,def) {
     if (creds) {
         //console.log("Attaching credentials to ",node.id);
         node.credentials = creds;
+    } else if (credentials.getDefinition(node.type)) {
+        node.credentials = {};
     }
 }
 
 function init(_settings,storage,app) {
     credentials.init(storage,app);
-    flows.init(storage);
+    flows.init(_settings,storage);
     registry.init(_settings);
 }
 
@@ -113,6 +115,7 @@ module.exports = {
     getNode: flows.get,
     eachNode: flows.eachNode,
 
+    addFile: registry.addFile,
     addModule: registry.addModule,
     removeModule: removeModule,
 
@@ -127,7 +130,6 @@ module.exports = {
     getNodeList: registry.getNodeList,
 
     getModuleInfo: registry.getModuleInfo,
-    getModuleList: registry.getModuleList,
 
     getNodeConfigs: registry.getNodeConfigs,
     getNodeConfig: registry.getNodeConfig,

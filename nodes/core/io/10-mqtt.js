@@ -53,14 +53,18 @@ module.exports = function(RED) {
                         msg._topic = topic;
                     }
                     node.send(msg);
-                });
+                }, this.id);
                 this.client.on("connectionlost",function() {
                     node.status({fill:"red",shape:"ring",text:"disconnected"});
                 });
                 this.client.on("connect",function() {
                     node.status({fill:"green",shape:"dot",text:"connected"});
                 });
-                this.client.connect();
+                if (this.client.isConnected()) {
+                    node.status({fill:"green",shape:"dot",text:"connected"});
+                } else {
+                    this.client.connect();
+                }
             }
             else {
                 this.error("topic not defined");
@@ -70,6 +74,7 @@ module.exports = function(RED) {
         }
         this.on('close', function() {
             if (this.client) {
+                this.client.unsubscribe(this.topic,this.id);
                 this.client.disconnect();
             }
         });
@@ -101,10 +106,12 @@ module.exports = function(RED) {
                 if (node.topic) {
                     msg.topic = node.topic;
                 }
-                if ((msg.hasOwnProperty("topic")) && (typeof msg.topic === "string") && (msg.topic !== "")) { // topic must exist
-                    this.client.publish(msg);  // send the message
+                if ( msg.hasOwnProperty("payload")) {
+                    if (msg.hasOwnProperty("topic") && (typeof msg.topic === "string") && (msg.topic !== "")) { // topic must exist
+                        this.client.publish(msg);  // send the message
+                    }
+                    else { node.warn("Invalid topic specified"); }
                 }
-                else { node.warn("Invalid topic specified"); }
             });
             this.client.on("connectionlost",function() {
                 node.status({fill:"red",shape:"ring",text:"disconnected"});
@@ -112,7 +119,11 @@ module.exports = function(RED) {
             this.client.on("connect",function() {
                 node.status({fill:"green",shape:"dot",text:"connected"});
             });
-            this.client.connect();
+            if (this.client.isConnected()) {
+                node.status({fill:"green",shape:"dot",text:"connected"});
+            } else {
+                this.client.connect();
+            }
         } else {
             this.error("missing broker configuration");
         }
