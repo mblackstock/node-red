@@ -51,7 +51,7 @@
         "oauth2orize":"1.0.1",
         "node-red-node-feedparser":"0.0.*",
         "node-red-node-email":"0.0.*",
-        "node-red-node-twitter":"0.0.*"
+        "node-red-node-twitter":"0.0.*",
 
         "node-red-contrib-wotkit":"0.2.4",
         "node-red-node-web-nodes":"0.3.2",
@@ -62,7 +62,7 @@
         "node-red-node-suncalc":"0.0.5",
         "node-red-node-smooth":"0.0.2",
         "node-red-node-ping":"0.0.3",
-        "node-red-contrib-moment":"1.0.2",
+        "node-red-contrib-moment":"1.0.2"
     },
     "optionalDependencies": {
         "node-red-node-serialport":"0.0.*",
