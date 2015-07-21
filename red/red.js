@@ -20,6 +20,7 @@ var library = require("./api/library");
 var comms = require("./comms");
 var log = require("./log");
 var util = require("./util");
+var i18n = require("./i18n");
 var fs = require("fs");
 var settings = require("./settings");
 var credentials = require("./nodes/credentials");
@@ -66,7 +67,7 @@ var RED = {
         var p = require(path.join(process.env.NODE_RED_HOME,"package.json")).version;
         /* istanbul ignore else */
         if (fs.existsSync(path.join(process.env.NODE_RED_HOME,".git"))) {
-            p += ".git";
+            p += "-git";
         }
         return p;
     },
@@ -75,4 +76,5 @@ var RED = {
     get httpNode() { return server.nodeApp },
     get server() { return server.server }
 };
+
 module.exports = RED;
