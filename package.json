@@ -54,7 +54,7 @@
         "node-red-node-feedparser":"0.1.*",
         "node-red-node-email":"0.1.*",
         "node-red-node-twitter":"0.1.*",
-        "node-red-node-rbe":"0.1.*"
+        "node-red-node-rbe":"0.1.*",
 
 
         "node-red-contrib-wotkit":"0.2.6",
@@ -67,7 +67,8 @@
         "node-red-node-smooth":"0.0.2",
         "node-red-node-ping":"0.0.3",
         "node-red-contrib-moment":"1.0.2",
-        "node-red-contrib-slack":"0.1.0"
+        "node-red-contrib-slack":"0.1.0",
+        "node-red-node-dweetio":"0.0.5"
     },
     "optionalDependencies": {
         "node-red-node-serialport":"0.0.*",
