@@ -87,10 +87,8 @@
     },
 
     "optionalDependencies": {
+        "node-red-node-serialport":"0.0.*",
         "bcrypt":"0.8.3"
-    },
-    "disabledDependencies": {
-        "node-red-node-serialport":"0.0.*"
     },
     "devDependencies": {
         "grunt": "0.4.5",

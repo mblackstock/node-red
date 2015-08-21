@@ -49,7 +49,7 @@ module.exports = {
     // To enabled pretty-printing of the flow within the flow file, set the following
     //  property to true:
     flowFilePretty: true,
-    
+
     // By default, all user data is stored in the Node-RED install directory. To
     // use a different location, the following property can be used
     //userDir: '/home/nol/.node-red/',
@@ -151,9 +151,8 @@ module.exports = {
     },
 
     // control the nodes to exclude from this system, saves memory
-    nodesExcludes:['75-exec.js','35-arduino.js','36-rpi-gpio.js','25-serial.js','28-tail.js','50-file.js','31-tcpin.js','32-udp.js','23-watch.js'],
+    nodesExcludes:['75-exec.js','35-arduino.js','36-rpi-gpio.js','25-serial.js','28-tail.js','50-file.js','23-watch.js','node-red-node-serialport'],
 
-    
     // The following property can be used to order the categories in the editor
     // palette. If a node's category is not in the list, the category will get
     // added to the end of the palette.
