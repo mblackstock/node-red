@@ -22,20 +22,20 @@
 -->
 <head>
 <title>{{ page.title }}</title>
-<link rel="icon" type="image/png" href="{{ page.favicon }}">
+<link rel="icon" type="image/png" href="{{{ page.favicon }}}">
 <link href="vendor/bootstrap/css/bootstrap.min.css" rel="stylesheet" media="screen">
 <link href="vendor/jquery/css/smoothness/jquery-ui-1.10.3.custom.min.css" rel="stylesheet" media="screen">
 <link rel="stylesheet" href="vendor/font-awesome/css/font-awesome.min.css">
 <link rel="stylesheet" href="vendor/vendor.css">
 <link rel="stylesheet" href="red/style.min.css">
 {{#page.css}}
-<link rel="stylesheet" href="{{.}}">
+<link rel="stylesheet" href="{{{.}}}">
 {{/page.css}}
 
 </head>
 <body spellcheck="false">
 <div id="header">
-    <span class="logo">{{#header.url}}<a href="{{.}}">{{/header.url}}{{#header.image}}<img src="{{.}}">{{/header.image}} <span>{{ header.title }}</span>{{#header.url}}</a>{{/header.url}}</span>
+    <span class="logo">{{#header.url}}<a href="{{{.}}}">{{/header.url}}{{#header.image}}<img src="{{{.}}}">{{/header.image}} <span>{{ header.title }}</span>{{#header.url}}</a>{{/header.url}}</span>
     <ul class="header-toolbar hide">
         <li><a id="btn-sidemenu" class="button" data-toggle="dropdown" href="#"><i class="fa fa-bars"></i></a></li>
     <ul>
@@ -175,7 +175,7 @@
 <script src="vendor/vendor.js"></script>
 <script src="vendor/ace/ace.js"></script>
 <script src="vendor/ace/ext-language_tools.js"></script>
-<script src="{{ asset.red }}"></script>
+<script src="{{{ asset.red }}}"></script>
 
 </body>
 </html>
