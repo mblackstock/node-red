@@ -18,8 +18,8 @@
     <div class="form-row">
         <label for="node-input-mode"><i class="fa fa-dot-circle-o"></i> <span data-i18n="websocket.label.type"></span></label>
         <select id="node-input-mode">
-            <option value="server" data-i18n="websocket.listenon"></option>
-            <option value="client" data-i18n="websocket.connectto"></option>
+            <!-- <option value="server" data-i18n="websocket.listenon"></option> STS Removed -->
+            <option value="client" data-i18n="websocket.connectto" selected="selected"></option>
         </select>
     </div>
     <div class="form-row" id="websocket-server-row">
@@ -48,7 +48,8 @@
 (function() {
 
     function ws_oneditprepare() {
-        $("#websocket-client-row").hide();            
+        if (!this.client) {this.client = true}; //STS added to force client
+        $("#websocket-client-row").hide();
         $("#node-input-mode").change(function(){
             if( $("#node-input-mode").val() === 'client') {
                 $("#websocket-server-row").hide();
@@ -59,7 +60,7 @@
                 $("#websocket-client-row").hide();
             }
         });
-    
+
         if(this.client) {
             $("#node-input-mode").val('client').change();
         }
@@ -67,24 +68,24 @@
             $("#node-input-mode").val('server').change();
         }
     }
-    
+
     function ws_oneditsave() {
         if($("#node-input-mode").val() === 'client') {
             $("#node-input-server").append('<option value="">Dummy</option>');
-            $("#node-input-server").val('');                
+            $("#node-input-server").val('');
         }
         else {
             $("#node-input-client").append('<option value="">Dummy</option>');
-            $("#node-input-client").val('');                
+            $("#node-input-client").val('');
         }
     }
-    
+
     function ws_label() {
         var nodeid = (this.client)?this.client:this.server;
         var wsNode = RED.nodes.node(nodeid);
         return this.name||(wsNode?"[ws] "+wsNode.label():"websocket");
     }
-    
+
     function ws_validateserver() {
         if($("#node-input-mode").val() === 'client' || (this.client && !this.server)) {
             return true;
@@ -93,7 +94,7 @@
             return RED.nodes.node(this.server) != null;
         }
     }
-    
+
     function ws_validateclient() {
         if($("#node-input-mode").val() === 'client' || (this.client && !this.server)) {
             return RED.nodes.node(this.client) != null;
@@ -119,9 +120,9 @@
         },
         label: ws_label,
         oneditsave: ws_oneditsave,
-        oneditprepare: ws_oneditprepare
+        oneditprepare: ws_oneditprepare,
     });
-    
+
     RED.nodes.registerType('websocket out',{
         category: 'output',
         defaults: {
@@ -141,7 +142,7 @@
         oneditsave: ws_oneditsave,
         oneditprepare: ws_oneditprepare
     });
-    
+
     RED.nodes.registerType('websocket-listener',{
         category: 'config',
         defaults: {
@@ -152,7 +153,7 @@
         outputs:0,
         label: function() {
             var root = RED.settings.httpNodeRoot;
-            if (root.slice(-1) != "/") { 
+            if (root.slice(-1) != "/") {
                 root = root+"/";
             }
             if (this.path.charAt(0) == "/") {
@@ -164,7 +165,7 @@
         },
         oneditprepare: function() {
             var root = RED.settings.httpNodeRoot;
-            if (root.slice(-1) == "/") { 
+            if (root.slice(-1) == "/") {
                 root = root.slice(0,-1);
             }
             if (root == "") {
@@ -188,7 +189,7 @@
             return this.path;
         }
     });
-    
+
 })();
 </script>
 
@@ -197,7 +198,7 @@
     <div class="form-row">
         <label for="node-input-mode"><i class="fa fa-dot-circle-o"></i> <span data-i18n="websocket.label.type"></span></label>
         <select id="node-input-mode">
-            <option value="server" data-i18n="websocket.listenon"></option>
+            <!-- <option value="server" data-i18n="websocket.listenon"></option> STS removed server option-->
             <option value="client" data-i18n="websocket.connectto"></option>
         </select>
     </div>
@@ -273,4 +274,3 @@
 <script type="text/x-red" data-help-name="websocket-client">
    <p>This configuration node connects a WebSocket client to the specified URL.</p>
 </script>
-

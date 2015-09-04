@@ -18,7 +18,7 @@
     <div class="form-row">
         <label for="node-input-server"><i class="fa fa-dot-circle-o"></i> <span data-i18n="tcpin.label.type"></span></label>
         <select id="node-input-server" style="width:120px; margin-right:5px;">
-            <option value="server" data-i18n="tcpin.type.listen"></option>
+            <!-- <option value="server" data-i18n="tcpin.type.listen"></option> STS option removed -->
             <option value="client" data-i18n="tcpin.type.connect"></option>
         </select>
         <span data-i18n="tcpin.label.port"></span> <input type="text" id="node-input-port" style="width: 50px">
@@ -66,7 +66,7 @@
         color:"Silver",
         defaults: {
             name: {value:""},
-            server: {value:"server",required:true},
+            server: {value:"client",required:true}, //STS value changed to client
             host: {value:"",validate:function(v) { return (this.server == "server")||v.length > 0;} },
             port: {value:"",required:true,validate:RED.validators.number()},
             datamode:{value:"stream"},
@@ -117,7 +117,7 @@
     <div class="form-row">
         <label for="node-input-beserver"><i class="fa fa-dot-circle-o"></i> <span data-i18n="tcpin.label.type"></span></label>
         <select id="node-input-beserver" style="width:150px; margin-right:5px;">
-            <option value="server" data-i18n="tcpin.type.listen"></option>
+            <!-- <option value="server" data-i18n="tcpin.type.listen"></option> STS option removed -->
             <option value="client" data-i18n="tcpin.type.connect"></option>
             <option value="reply" data-i18n="tcpin.type.reply"></option>
         </select>
