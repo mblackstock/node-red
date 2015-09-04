@@ -60,7 +60,7 @@
     <p>On some systems you may need to be root to use ports below 1024 and/or broadcast.</p>
 </script>
 
-<script type="text/javascript">
+ <script type="text/javascript"> /*STS removed the node in*/ /*
     RED.nodes.registerType('udp in',{
         category: 'input',
         color:"Silver",
@@ -100,7 +100,7 @@
             $("#node-input-multicast").change();
         }
     });
-</script>
+*/</script>
 
 
 <!--  The Output Node  -->
@@ -109,8 +109,8 @@
         <label for="node-input-port"><i class="fa fa-envelope"></i> <span data-i18n="udp.label.send"></span></label>
         <select id="node-input-multicast" style="width:40%">
           <option value="false" data-i18n="udp.udpmsg"></option>
-          <option value="broad" data-i18n="udp.bcmsg"></option>
-          <option value="multi" data-i18n="udp.mcmsg"></option>
+          <!-- <option value="broad" data-i18n="udp.bcmsg"></option> STS removed option -->
+          <!-- <option value="multi" data-i18n="udp.mcmsg"></option> STS removed option -->
         </select>
         <span data-i18n="udp.label.toport"></span> <input type="text" id="node-input-port" style="width: 70px">
     </div>
