@@ -18,7 +18,7 @@
     <div class="form-row">
         <label for="node-input-mode"><i class="fa fa-dot-circle-o"></i> <span data-i18n="websocket.label.type"></span></label>
         <select id="node-input-mode">
-            <!-- <option value="server" data-i18n="websocket.listenon"></option> STS Removed -->
+            <option value="server" data-i18n="websocket.listenon"></option>
             <option value="client" data-i18n="websocket.connectto" selected="selected"></option>
         </select>
     </div>
@@ -48,7 +48,6 @@
 (function() {
 
     function ws_oneditprepare() {
-        if (!this.client) {this.client = true}; //STS added to force client
         $("#websocket-client-row").hide();
         $("#node-input-mode").change(function(){
             if( $("#node-input-mode").val() === 'client') {
@@ -198,7 +197,7 @@
     <div class="form-row">
         <label for="node-input-mode"><i class="fa fa-dot-circle-o"></i> <span data-i18n="websocket.label.type"></span></label>
         <select id="node-input-mode">
-            <!-- <option value="server" data-i18n="websocket.listenon"></option> STS removed server option-->
+            <option value="server" data-i18n="websocket.listenon"></option>
             <option value="client" data-i18n="websocket.connectto"></option>
         </select>
     </div>
