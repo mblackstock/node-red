@@ -132,7 +132,8 @@ module.exports = function(grunt) {
                         "editor/vendor/marked/marked.min.js",
                         "editor/vendor/orion/built-editor.min.js",
                         "editor/vendor/d3/d3.v3.min.js",
-                        "editor/vendor/i18next/i18next.min.js"
+                        "editor/vendor/i18next/i18next.min.js",
+                        "editor/vendor/google-analytics/google-analytics.js"
                     ],
                     "public/vendor/vendor.css": [
                         "editor/vendor/orion/built-editor.css"
