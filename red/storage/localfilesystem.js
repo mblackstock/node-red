@@ -20,7 +20,7 @@ var nodeFn = require('when/node/function');
 var keys = require('when/keys');
 var fspath = require("path");
 var mkdirp = fs.mkdirs;
-
+var cryptutil = require('../crypt'); //decryption utils, could be done here
 var log = require("../log");
 
 var promiseDir = nodeFn.lift(mkdirp);
@@ -37,30 +37,6 @@ var libDir;
 var libFlowsDir;
 var globalSettingsFile;
 var cryptoSecret;
-
-// functions to encrypt and decrypt credentials files
-var crypto = require('crypto');
-var algorithm = 'aes-256-ctr' ;
-
-function encrypt(text) {
-    if (!cryptoSecret) {
-        return text;
-    }
-    var cipher = crypto.createCipher(algorithm,cryptoSecret)
-    var crypted = cipher.update(text,'utf8','hex')
-    crypted += cipher.final('hex');
-    return crypted;
-}
- 
-function decrypt(text){
-    if (!cryptoSecret) {
-        return text;
-    }
-    var decipher = crypto.createDecipher(algorithm,cryptoSecret)
-    var dec = decipher.update(text,'hex','utf8')
-    dec += decipher.final('utf8');
-    return dec;
-}
 
 function getFileMeta(root,path) {
     var fn = fspath.join(root,path);
@@ -146,11 +122,39 @@ function writeFile(path,content) {
     });
 }
 
+/*
+* We need an appropriate parser for a credentials file that might or might not
+* be encrypted. If the file cannot be decrypted we will return an empty object {}
+* but we won't touch the file. This case will occur if the environment var
+* CRYPTOSECRET changes. Be aware of this.
+*/
+function parseCredentials(data){
+  if (!cryptoSecret) {
+    try {
+      return JSON.parse(data);
+    } catch (err) {
+      log.trace("Corrupted credentials file detected: " + err);
+      return {};
+    }
+  } else {
+    decryptedData = cryptutil.decrypt(data,cryptoSecret);
+    try {
+      return JSON.parse(decryptedData);
+    } catch (err) {
+      log.trace("Corrupted credentials file detected, possibly due to wrong CRYPTOSECRET env variable: " + err);
+      return {};
+    }
+  }
+
+}
+
 var localfilesystem = {
     init: function(_settings) {
         settings = _settings;
-	cryptoSecret = settings.cryptoSecret;
-        
+        // Some may argue this next line should probably go somewhere else.
+        // However since it's only used here I believe it should be in this init.
+        cryptoSecret = process.env.CRYPTOSECRET || undefined;
+
         var promises = [];
 
         if (!settings.userDir) {
@@ -242,26 +246,25 @@ var localfilesystem = {
     },
 
     getCredentials: function() {
-        return when.promise(function(resolve) {
-            fs.exists(credentialsFile, function(exists) {
-                if (exists) {
-                    resolve(nodeFn.call(fs.readFile, credentialsFile, 'utf8').then(function(data) {
-                        return JSON.parse(data)
-                    }));
-                } else {
-                    fs.exists(oldCredentialsFile, function(exists) {
-                        if (exists) {
-                            resolve(nodeFn.call(fs.readFile, oldCredentialsFile, 'utf8').then(function(data) {
-				data = decrypt(data);
-                                return JSON.parse(data)
-                            }));
-                        } else {
-                            resolve({});
-                        }
-                    });
-                }
-            });
+        var defer = when.defer();
+        fs.exists(credentialsFile, function(exists) {
+            if (exists) {
+                defer.resolve(nodeFn.call(fs.readFile, credentialsFile, 'utf8').then(function(data) {
+                    return parseCredentials(data);//return JSON.parse(data)
+                }));
+            } else {
+                fs.exists(oldCredentialsFile, function(exists) {
+                    if (exists) {
+                        defer.resolve(nodeFn.call(fs.readFile, oldCredentialsFile, 'utf8').then(function(data) {
+                            parseCredentials(data);//return JSON.parse(data)
+                        }));
+                    } else {
+                        defer.resolve({});
+                    }
+                });
+            }
         });
+        return defer.promise;
     },
 
     saveCredentials: function(credentials) {
@@ -274,7 +277,7 @@ var localfilesystem = {
         } else {
             credentialData = JSON.stringify(credentials);
         }
-        credentialData = encrypt(credentialData);
+        credentialData = cryptutil.encrypt(credentialData,cryptoSecret);
         return writeFile(credentialsFile, credentialData);
     },
 

@@ -41,8 +41,8 @@ describe('LocalFileSystem', function() {
             done(err);
         });
     });
-    
-    
+
+
     it('should set userDir to NRH is .config.json present',function(done) {
         var oldNRH = process.env.NODE_RED_HOME;
         process.env.NODE_RED_HOME = path.join(userDir,"NRH");
@@ -64,13 +64,13 @@ describe('LocalFileSystem', function() {
             done(err);
         });
     });
-    
+
     it('should set userDir to HOME/.node-red',function(done) {
         var oldNRH = process.env.NODE_RED_HOME;
         process.env.NODE_RED_HOME = path.join(userDir,"NRH");
         var oldHOME = process.env.HOME;
         process.env.HOME = path.join(userDir,"HOME");
-        
+
         fs.mkdirSync(process.env.HOME);
         var settings = {};
         localfilesystem.init(settings).then(function() {
@@ -89,7 +89,7 @@ describe('LocalFileSystem', function() {
             done(err);
         });
     });
-    
+
     it('should handle missing flow file',function(done) {
         localfilesystem.init({userDir:userDir}).then(function() {
             var flowFile = 'flows_'+require('os').hostname()+'.json';
@@ -156,7 +156,7 @@ describe('LocalFileSystem', function() {
             done(err);
         });
     });
-    
+
     it('should format the flows file when flowFilePretty specified',function(done) {
         var flowFile = 'test.json';
         var flowFilePath = path.join(userDir,flowFile);
@@ -177,7 +177,7 @@ describe('LocalFileSystem', function() {
             done(err);
         });
     });
-    
+
     it('should backup the flows file', function(done) {
         var defaultFlowFile = 'flows_'+require('os').hostname()+'.json';
         var defaultFlowFilePath = path.join(userDir,defaultFlowFile);
@@ -196,7 +196,7 @@ describe('LocalFileSystem', function() {
                 fs.existsSync(flowFilePath).should.be.true;
                 var content = fs.readFileSync(flowFilePath,'utf8');
                 var testFlow2 = [{"type":"tab","id":"bc5672ad.2741d8","label":"Sheet 2"}];
-                
+
                 localfilesystem.saveFlows(testFlow2).then(function() {
                     fs.existsSync(flowFileBackupPath).should.be.true;
                     fs.existsSync(defaultFlowFilePath).should.be.false;
@@ -206,21 +206,19 @@ describe('LocalFileSystem', function() {
                     var content2 = fs.readFileSync(flowFilePath,'utf8');
                     content2.should.not.equal(backupContent);
                     done();
-                    
+
                 }).otherwise(function(err) {
                     done(err);
                 });
-                
+
             }).otherwise(function(err) {
                 done(err);
             });
         }).otherwise(function(err) {
             done(err);
         });
-            
-            
-    });
-    
+});
+
     it('should handle missing credentials', function(done) {
         var flowFile = 'test.json';
         var flowFilePath = path.join(userDir,flowFile);
@@ -266,7 +264,7 @@ describe('LocalFileSystem', function() {
         });
     });
 
-    
+
     it('should backup existing credentials', function(done) {
         var flowFile = 'test.json';
         var flowFilePath = path.join(userDir,flowFile);
@@ -276,7 +274,7 @@ describe('LocalFileSystem', function() {
         localfilesystem.init({userDir:userDir, flowFile:flowFilePath}).then(function() {
 
             fs.writeFileSync(credFile,"{}","utf8");
-            
+
             fs.existsSync(credFile).should.be.true;
             fs.existsSync(credFileBackup).should.be.false;
 
@@ -293,8 +291,8 @@ describe('LocalFileSystem', function() {
             done(err);
         });
     });
-    
-    
+
+
     it('should format the creds file when flowFilePretty specified',function(done) {
         var flowFile = 'test.json';
         var flowFilePath = path.join(userDir,flowFile);
@@ -323,7 +321,7 @@ describe('LocalFileSystem', function() {
             done(err);
         });
     });
-    
+
     it('should handle non-existent settings', function(done) {
         var settingsFile = path.join(userDir,".settings.json");
 
@@ -339,7 +337,7 @@ describe('LocalFileSystem', function() {
             done(err);
         });
     });
-    
+
     it('should handle corrupt settings', function(done) {
         var settingsFile = path.join(userDir,".config.json");
         fs.writeFileSync(settingsFile,"[This is not json","utf8");
@@ -355,7 +353,7 @@ describe('LocalFileSystem', function() {
             done(err);
         });
     });
-    
+
     it('should handle settings', function(done) {
         var settingsFile = path.join(userDir,".config.json");
 
@@ -379,7 +377,7 @@ describe('LocalFileSystem', function() {
             done(err);
         });
     });
-    
+
     it('should handle non-existent sessions', function(done) {
         var sessionsFile = path.join(userDir,".sessions.json");
 
@@ -395,7 +393,7 @@ describe('LocalFileSystem', function() {
             done(err);
         });
     });
-        
+
     it('should handle corrupt sessions', function(done) {
         var sessionsFile = path.join(userDir,".sessions.json");
         fs.writeFileSync(sessionsFile,"[This is not json","utf8");
@@ -435,8 +433,8 @@ describe('LocalFileSystem', function() {
             done(err);
         });
     });
-    
-    
+
+
     it('should return an empty list of library objects',function(done) {
         localfilesystem.init({userDir:userDir}).then(function() {
             localfilesystem.getLibraryEntry('object','').then(function(flows) {
@@ -513,9 +511,9 @@ describe('LocalFileSystem', function() {
                 done(err);
             });
         });
-            
+
     });
-    
+
     it('should return a library object',function(done) {
         localfilesystem.init({userDir:userDir}).then(function() {
             createObjectLibrary();
