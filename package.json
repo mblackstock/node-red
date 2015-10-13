@@ -56,6 +56,8 @@
     "node-red-contrib-salesforce": "0.0.5",
     "node-red-contrib-slack": "SenseTecnic/node-red-slack",
     "node-red-contrib-wotkit": "0.2.10",
+    "node-red-contrib-pubnub": "0.0.3",
+    "node-red-contrib-influxdb": "0.0.2",
 
     "node-red-node-aws": "0.1.0",
     "node-red-node-badwords": "0.0.1",
@@ -71,7 +73,7 @@
     "node-red-node-google": "0.1.0",
     "node-red-node-instagram": "0.1.0",
     "node-red-node-jawboneup": "0.1.0",
-    "node-red-node-mongodb": "0.0.2",
+    "node-red-node-mongodb": "0.0.3",
     "node-red-node-mysql": "0.0.6",
     "node-red-node-openweathermap": "0.1.0",
     "node-red-node-pinboard": "0.1.0",
