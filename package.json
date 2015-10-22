@@ -83,7 +83,7 @@
     "node-red-node-smooth": "0.0.2",
     "node-red-node-strava": "0.1.0",
     "node-red-node-suncalc": "0.0.5",
-    "node-red-node-tfl": "0.1.0",
+    "node-red-node-tfl": "0.1.1",
     "node-red-node-twitter": "0.1.*",
     "node-red-node-weather-underground": "0.1.1",
     "node-red-node-wordpos": "0.0.1",
