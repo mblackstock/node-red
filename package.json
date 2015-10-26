@@ -75,7 +75,7 @@
     "node-red-node-jawboneup": "0.1.0",
     "node-red-node-mongodb": "0.0.3",
     "node-red-node-mysql": "0.0.6",
-    "node-red-node-openweathermap": "0.1.0",
+    "node-red-node-openweathermap": "0.1.4",
     "node-red-node-pinboard": "0.1.0",
     "node-red-node-ping": "0.0.3",
     "node-red-node-pushbullet": "0.0.5",
