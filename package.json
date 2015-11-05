@@ -88,6 +88,8 @@
     "node-red-node-weather-underground": "0.1.1",
     "node-red-node-wordpos": "0.0.1",
     "node-red-node-xmpp": "0.0.5",
+    "node-red-contrib-sox": "calderonroberto/node-red-contrib-sox",
+
     
     "nopt": "3.0.3",
     "oauth2orize": "1.0.1",
