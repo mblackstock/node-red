@@ -29,6 +29,7 @@ var server;
 var app = express();
 
 var settingsFile;
+var globalSettingsFile;
 var flowFile;
 
 var knownOpts = {
@@ -66,12 +67,23 @@ if (parsedArgs.argv.remain.length > 0) {
     flowFile = parsedArgs.argv.remain[0];
 }
 
-if (parsedArgs.settings) {
-    // User-specified settings file
-    settingsFile = parsedArgs.settings;
-} else if (parsedArgs.userDir && fs.existsSync(path.join(parsedArgs.userDir,"settings.js"))) {
+
+// STS change: we will use both user directory and settings arguments to start
+//             NodeRED instance. Settings in the user directory (-u) will take
+//             prescendence over the global settings passed in (-s)
+if (parsedArgs.userDir && fs.existsSync(path.join(parsedArgs.userDir,"settings.js"))) {
     // User-specified userDir that contains a settings.js
     settingsFile = path.join(parsedArgs.userDir,"settings.js");
+
+    if (parsedArgs.settings 
+            && fs.existsSync(parsedArgs.settings)) {
+        globalSettingsFile = parsedArgs.settings;
+    }
+
+} else if (parsedArgs.settings) {
+    // User-specified settings file
+    settingsFile = parsedArgs.settings;
+
 } else {
     if (fs.existsSync(path.join(process.env.NODE_RED_HOME,".config.json"))) {
         // NODE_RED_HOME contains user data - use its settings.js
@@ -90,6 +102,16 @@ if (parsedArgs.settings) {
 
 try {
     var settings = require(settingsFile);
+    if (globalSettingsFile) {
+        var globalSettings = require(globalSettingsFile);
+        // user directory settings take prescendent over global settings
+        for (var prop in globalSettings) {
+            if (globalSettings.hasOwnProperty(prop) 
+                    && !settings.hasOwnProperty(prop)) {
+                settings[prop] = globalSettings[prop];
+            }
+        }
+    }
     settings.settingsFile = settingsFile;
 } catch(err) {
     if (err.code == 'MODULE_NOT_FOUND') {

@@ -26,8 +26,8 @@ var defaultContext = {
         favicon: "favicon.ico"
     },
     header: {
-      title: "FRED - Cloud Hosted Node-RED",
-      image: "red/images/node-red-sts.png"
+      title: "Node-RED",
+      image: "red/images/node-red.png"
     },
     asset: {
         red: (process.env.NODE_ENV == "development")? "red/red.js":"red/red.min.js"
@@ -38,18 +38,23 @@ var themeContext = clone(defaultContext);
 var themeSettings = null;
 
 function serveFile(app,baseUrl,file) {
-    try {
-        var stats = fs.statSync(file);
-        var url = baseUrl+path.basename(file);
-        //console.log(url,"->",file);
-        app.get(url,function(req, res) {
-            res.sendfile(file);
-        });
-        return "theme"+url;
-    } catch(err) {
-        //TODO: log filenotfound
-        return null;
-    }
+    return file;
+    // STS change: this is commented out so we can use theme resources
+    //             outside of the NodeRED directory. Note that we assume
+    //             the theme file specified does exist.
+    // try {
+    //     var stats = fs.statSync(file);
+    //     var url = baseUrl+path.basename(file);
+    //     //console.log(url,"->",file);
+    //     app.get(url,function(req, res) {
+    //         res.sendfile(file);
+    //     });
+    //     return "theme"+url;
+    // } catch(err) {
+    //     console.log(err)
+    //     //TODO: log filenotfound
+    //     return null;
+    // }
 }
 
 module.exports = {
@@ -58,7 +63,7 @@ module.exports = {
         var url;
         themeContext = clone(defaultContext);
         themeSettings = null;
-
+        
         if (settings.editorTheme) {
             var theme = settings.editorTheme;
             themeSettings = {};
