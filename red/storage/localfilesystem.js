@@ -149,7 +149,8 @@ function writeFile(path,content) {
 var localfilesystem = {
     init: function(_settings) {
         settings = _settings;
-	cryptoSecret = settings.cryptoSecret;
+        cryptoSecret = settings.cryptoSecret;
+        log.info("cryptoSecret:"+cryptoSecret);
         
         var promises = [];
 
@@ -246,13 +247,14 @@ var localfilesystem = {
             fs.exists(credentialsFile, function(exists) {
                 if (exists) {
                     resolve(nodeFn.call(fs.readFile, credentialsFile, 'utf8').then(function(data) {
+                        data = decrypt(data);
                         return JSON.parse(data)
                     }));
                 } else {
                     fs.exists(oldCredentialsFile, function(exists) {
                         if (exists) {
                             resolve(nodeFn.call(fs.readFile, oldCredentialsFile, 'utf8').then(function(data) {
-				data = decrypt(data);
+                                data = decrypt(data);
                                 return JSON.parse(data)
                             }));
                         } else {

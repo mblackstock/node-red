@@ -36,7 +36,8 @@ var knownOpts = {
     "settings":[path],
     "userDir":[path],
     "v": Boolean,
-    "help": Boolean
+    "help": Boolean,
+    "crypto":String
 };
 var shortHands = {
     "s":["--settings"],
