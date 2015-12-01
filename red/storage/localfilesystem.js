@@ -150,7 +150,6 @@ var localfilesystem = {
     init: function(_settings) {
         settings = _settings;
         cryptoSecret = settings.cryptoSecret;
-        log.info("cryptoSecret:"+cryptoSecret);
         
         var promises = [];
 
