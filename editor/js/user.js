@@ -152,21 +152,6 @@ RED.user = (function() {
                 id:"usermenu-item-username",
                 label:"<b>"+RED.settings.user.username+"</b>"
             });
-            RED.menu.addItem("btn-usermenu",{
-                id:"btn-fred",
-                label: "Return to FRED",
-                onselect: function() {
-                    window.location.replace('../');
-                }
-            });
-            RED.menu.addItem("btn-usermenu",{
-                id:"usermenu-item-logout",
-                label:RED._("menu.label.logout"),
-                onselect: function() {
-                    //RED.user.logout();
-                    window.location.replace('../logout');
-                }
-            });
         }
 
     }
