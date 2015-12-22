@@ -13,11 +13,22 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  **/
+
+var when = require("when");
+var path = require("path");
+var fs = require("fs");
+
 var registry = require("./registry");
 var credentials = require("./credentials");
 var flows = require("./flows");
 var Node = require("./Node");
 var log = require("../log");
+
+var events = require("../events");
+
+var child_process = require('child_process');
+
+var settings;
 
 /**
  * Registers a node constructor
@@ -53,57 +64,28 @@ function createNode(node,def) {
     }
 }
 
-function init(_settings,storage,app) {
-    credentials.init(storage,app);
+function init(_settings,storage) {
+    settings = _settings;
+    credentials.init(storage);
     flows.init(_settings,storage);
     registry.init(_settings);
 }
 
-function checkTypeInUse(id) {
-    var nodeInfo = registry.getNodeInfo(id);
-    if (!nodeInfo) {
-        throw new Error(log._("nodes.index.unrecognised-id", {id:id}));
-    } else {
-        var inUse = {};
-        var config = flows.getFlows();
-        config.forEach(function(n) {
-            inUse[n.type] = (inUse[n.type]||0)+1;
-        });
-        var nodesInUse = [];
-        nodeInfo.types.forEach(function(t) {
-            if (inUse[t]) {
-                nodesInUse.push(t);
-            }
-        });
-        if (nodesInUse.length > 0) {
-            var msg = nodesInUse.join(", ");
-            var err = new Error(log._("nodes.index.type-in-use", {msg:msg}));
-            err.code = "type_in_use";
-            throw err;
-        }
-    }
+function disableNode(id) {
+    flows.checkTypeInUse(id);
+    return registry.disableNode(id);
 }
 
-function removeNode(id) {
-    checkTypeInUse(id);
-    return registry.removeNode(id);
-}
-
-function removeModule(module) {
+function uninstallModule(module) {
     var info = registry.getModuleInfo(module);
     if (!info) {
         throw new Error(log._("nodes.index.unrecognised-module", {module:module}));
     } else {
         for (var i=0;i<info.nodes.length;i++) {
-            checkTypeInUse(module+"/"+info.nodes[i].name);
+            flows.checkTypeInUse(module+"/"+info.nodes[i].name);
         }
-        return registry.removeModule(module);
+        return registry.uninstallModule(module);
     }
-}
-
-function disableNode(id) {
-    checkTypeInUse(id);
-    return registry.disableNode(id);
 }
 
 module.exports = {
@@ -116,9 +98,8 @@ module.exports = {
     getNode: flows.get,
     eachNode: flows.eachNode,
 
-    addFile: registry.addFile,
-    addModule: registry.addModule,
-    removeModule: removeModule,
+    installModule: registry.installModule,
+    uninstallModule: uninstallModule,
 
     enableNode: registry.enableNode,
     disableNode: disableNode,
@@ -140,6 +121,7 @@ module.exports = {
 
     // Flow handling
     loadFlows: flows.load,
+    startFlows: flows.startFlows,
     stopFlows: flows.stopFlows,
     setFlows: flows.setFlows,
     getFlows: flows.getFlows,
@@ -147,6 +129,6 @@ module.exports = {
     // Credentials
     addCredentials: credentials.add,
     getCredentials: credentials.get,
-    deleteCredentials: credentials.delete
+    deleteCredentials: credentials.delete,
+    getCredentialDefinition: credentials.getDefinition
 };
-

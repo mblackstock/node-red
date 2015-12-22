@@ -15,7 +15,10 @@
 
 # Import library functions we need
 import RPi.GPIO as GPIO
+import struct
 import sys
+import os
+import subprocess
 
 bounce = 20     # bounce time in mS to apply
 
@@ -23,7 +26,7 @@ if sys.version_info >= (3,0):
     print("Sorry - currently only configured to work with python 2.x")
     sys.exit(1)
 
-if len(sys.argv) > 1:
+if len(sys.argv) > 2:
     cmd = sys.argv[1].lower()
     pin = int(sys.argv[2])
     GPIO.setmode(GPIO.BOARD)
@@ -193,5 +196,38 @@ if len(sys.argv) > 1:
                 file.close()
                 sys.exit(0)
 
+    elif cmd == "kbd":  # catch keyboard button events
+        try:
+            while not os.path.isdir("/dev/input/by-path"):
+                time.sleep(10)
+            infile = subprocess.check_output("ls /dev/input/by-path/ | grep -m 1 'kbd'", shell=True).strip()
+            infile_path = "/dev/input/by-path/" + infile
+            EVENT_SIZE = struct.calcsize('llHHI')
+            file = open(infile_path, "rb")
+            event = file.read(EVENT_SIZE)
+            while event:
+                (tv_sec, tv_usec, type, code, value) = struct.unpack('llHHI', event)
+                #if type != 0 or code != 0 or value != 0:
+                if type == 1:
+                    # type,code,value
+                    print("%u,%u" % (code, value))
+                event = file.read(EVENT_SIZE)
+            print "0,0"
+            file.close()
+            sys.exit(0)
+        except:
+            file.close()
+            sys.exit(0)
+
+elif len(sys.argv) > 1:
+    cmd = sys.argv[1].lower()
+    if cmd == "rev":
+        print GPIO.RPI_REVISION
+    elif cmd == "ver":
+        print GPIO.VERSION
+    else:
+        print "Bad parameters - in|out|pwm|buzz|byte|borg|mouse|kbd|ver {pin} {value|up|down}"
+        print "  only ver (gpio version) and rev (board revision) accept no pin parameter."
+
 else:
-    print "Bad parameters - {in|out|pwm} {pin} {value|up|down}"
+    print "Bad parameters - in|out|pwm|buzz|byte|borg|mouse|kbd|ver {pin} {value|up|down}"

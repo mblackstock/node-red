@@ -16,8 +16,6 @@
 var should = require("should");
 var when = require("when");
 var sinon = require("sinon");
-var child_process = require('child_process');
-var fs = require("fs");
 
 var comms = require("../../red/comms");
 var redNodes = require("../../red/nodes");
@@ -30,11 +28,11 @@ var log = require("../../red/log");
 describe("red/server", function() {
     var commsMessages = [];
     var commsPublish;
-    
+
     beforeEach(function() {
         commsMessages = [];
     });
-    
+
     before(function() {
         commsPublish = sinon.stub(comms,"publish", function(topic,msg,retained) {
             commsMessages.push({topic:topic,msg:msg,retained:retained});
@@ -43,22 +41,22 @@ describe("red/server", function() {
     after(function() {
         commsPublish.restore();
     });
-    
+
     it("initialises components", function() {
         var commsInit = sinon.stub(comms,"init",function() {});
         var dummyServer = {};
         server.init(dummyServer,{testSettings: true, httpAdminRoot:"/", load:function() { return when.resolve();}});
-        
+
         commsInit.called.should.be.true;
-        
+
         should.exist(server.app);
         should.exist(server.nodeApp);
-        
+
         server.server.should.equal(dummyServer);
-        
+
         commsInit.restore();
     });
-    
+
     describe("start",function() {
         var commsInit;
         var storageInit;
@@ -73,8 +71,9 @@ describe("red/server", function() {
         var redNodesCleanModuleList;
         var redNodesGetNodeList;
         var redNodesLoadFlows;
+        var redNodesStartFlows;
         var commsStart;
-        
+
         beforeEach(function() {
             commsInit = sinon.stub(comms,"init",function() {});
             storageInit = sinon.stub(storage,"init",function(settings) {return when.resolve();});
@@ -86,7 +85,8 @@ describe("red/server", function() {
             redNodesInit = sinon.stub(redNodes,"init", function() {});
             redNodesLoad = sinon.stub(redNodes,"load", function() {return when.resolve()});
             redNodesCleanModuleList = sinon.stub(redNodes,"cleanModuleList",function(){});
-            redNodesLoadFlows = sinon.stub(redNodes,"loadFlows",function() {});
+            redNodesLoadFlows = sinon.stub(redNodes,"loadFlows",function() {return when.resolve()});
+            redNodesStartFlows = sinon.stub(redNodes,"startFlows",function() {});
             commsStart = sinon.stub(comms,"start",function(){});
         });
         afterEach(function() {
@@ -99,9 +99,10 @@ describe("red/server", function() {
             logLog.restore();
             redNodesInit.restore();
             redNodesLoad.restore();
-            redNodesGetNodeList.restore(); 
+            redNodesGetNodeList.restore();
             redNodesCleanModuleList.restore();
             redNodesLoadFlows.restore();
+            redNodesStartFlows.restore();
             commsStart.restore();
         });
         it("reports errored/missing modules",function(done) {
@@ -120,7 +121,7 @@ describe("red/server", function() {
                     redNodesLoad.calledOnce.should.be.true;
                     commsStart.calledOnce.should.be.true;
                     redNodesLoadFlows.calledOnce.should.be.true;
-                    
+
                     logWarn.calledWithMatch("Failed to register 1 node type");
                     logWarn.calledWithMatch("Missing node modules");
                     logWarn.calledWithMatch(" - module: typeA, typeB");
@@ -140,7 +141,7 @@ describe("red/server", function() {
                     {  module:"node-red",enabled:true,loaded:false,types:["typeC","typeD"]} // missing
                 ].filter(cb);
             });
-            var serverInstallModule = sinon.stub(server,"installModule",function(name) { return when.resolve();});
+            var serverInstallModule = sinon.stub(redNodes,"installModule",function(name) { return when.resolve();});
             server.init({},{testSettings: true, autoInstallModules:true, httpAdminRoot:"/", load:function() { return when.resolve();}});
             server.start().then(function() {
                 try {
@@ -168,7 +169,7 @@ describe("red/server", function() {
             });
             server.init({},{testSettings: true, verbose:true, httpAdminRoot:"/", load:function() { return when.resolve();}});
             server.start().then(function() {
-                
+
                 try {
                     apiInit.calledOnce.should.be.true;
                     logWarn.neverCalledWithMatch("Failed to register 1 node type");
@@ -179,7 +180,7 @@ describe("red/server", function() {
                 }
             });
         });
-        
+
         it("reports runtime metrics",function(done) {
             var commsStop = sinon.stub(comms,"stop",function() {} );
             var stopFlows = sinon.stub(redNodes,"stopFlows",function() {} );
@@ -208,8 +209,8 @@ describe("red/server", function() {
                     }
                 },500);
             });
-        }); 
-        
+        });
+
         it("doesn't init api if httpAdminRoot set to false",function(done) {
             redNodesGetNodeList = sinon.stub(redNodes,"getNodeList", function() {return []});
             server.init({},{testSettings: true, httpAdminRoot:false, load:function() { return when.resolve();}});
@@ -225,162 +226,17 @@ describe("red/server", function() {
             });
         });
     });
-    
+
     it("stops components", function() {
         var commsStop = sinon.stub(comms,"stop",function() {} );
         var stopFlows = sinon.stub(redNodes,"stopFlows",function() {} );
-        
+
         server.stop();
-        
+
         commsStop.called.should.be.true;
         stopFlows.called.should.be.true;
-        
+
         commsStop.restore();
         stopFlows.restore();
     });
-    
-    it("reports added modules", function() {
-        var nodes = {nodes:[
-            {types:["a"]},
-            {module:"foo",types:["b"]},
-            {types:["c"],err:"error"}
-        ]};
-        var result = server.reportAddedModules(nodes);
-        
-        result.should.equal(nodes);
-        commsMessages.should.have.length(1);
-        commsMessages[0].topic.should.equal("node/added");
-        commsMessages[0].msg.should.eql(nodes.nodes);
-    });
-    
-    it("reports removed modules", function() {
-        var nodes = [
-            {types:["a"]},
-            {module:"foo",types:["b"]},
-            {types:["c"],err:"error"}
-        ];
-        var result = server.reportRemovedModules(nodes);
-        
-        result.should.equal(nodes);
-        commsMessages.should.have.length(1);
-        commsMessages[0].topic.should.equal("node/removed");
-        commsMessages[0].msg.should.eql(nodes);
-    });
-    
-    describe("installs module", function() {
-        it("rejects invalid module names", function(done) {
-            var promises = [];
-            promises.push(server.installModule("this_wont_exist "));
-            promises.push(server.installModule("this_wont_exist;no_it_really_wont"));
-            when.settle(promises).then(function(results) {
-                results[0].state.should.be.eql("rejected");
-                results[1].state.should.be.eql("rejected");
-                done();
-            });
-        });
-        
-        it("rejects when npm returns a 404", function(done) {
-            var exec = sinon.stub(child_process,"exec",function(cmd,opt,cb) {
-                cb(new Error(),""," 404  this_wont_exist");
-            });
-            
-            server.installModule("this_wont_exist").otherwise(function(err) {
-                err.code.should.be.eql(404);
-                done();
-            }).finally(function() {
-                exec.restore();
-            });
-        });
-        it("rejects with generic error", function(done) {
-            var exec = sinon.stub(child_process,"exec",function(cmd,opt,cb) {
-                cb(new Error("test_error"),"","");
-            });
-            
-            server.installModule("this_wont_exist").then(function() {
-                done(new Error("Unexpected success"));
-            }).otherwise(function(err) {
-                done();
-            }).finally(function() {
-                exec.restore();
-            });
-        });
-        it("succeeds when module is found", function(done) {
-            var nodeInfo = {nodes:{module:"foo",types:["a"]}};
-            var exec = sinon.stub(child_process,"exec",function(cmd,opt,cb) {
-                cb(null,"","");
-            });
-            var addModule = sinon.stub(redNodes,"addModule",function(md) {
-                return when.resolve(nodeInfo);
-            });
-            
-            server.installModule("this_wont_exist").then(function(info) {
-                info.should.eql(nodeInfo);
-                commsMessages.should.have.length(1);
-                commsMessages[0].topic.should.equal("node/added");
-                commsMessages[0].msg.should.eql(nodeInfo.nodes);
-                done();
-            }).otherwise(function(err) {
-                done(err);
-            }).finally(function() {
-                exec.restore();
-                addModule.restore();
-            });
-        });
-    });
-    describe("uninstalls module", function() {
-        it("rejects invalid module names", function(done) {
-            var promises = [];
-            promises.push(server.uninstallModule("this_wont_exist "));
-            promises.push(server.uninstallModule("this_wont_exist;no_it_really_wont"));
-            when.settle(promises).then(function(results) {
-                results[0].state.should.be.eql("rejected");
-                results[1].state.should.be.eql("rejected");
-                done();
-            });
-        });
-
-        it("rejects with generic error", function(done) {
-            var nodeInfo = [{module:"foo",types:["a"]}];
-            var removeModule = sinon.stub(redNodes,"removeModule",function(md) {
-                return when.resolve(nodeInfo);
-            });
-            var exec = sinon.stub(child_process,"exec",function(cmd,opt,cb) {
-                cb(new Error("test_error"),"","");
-            });
-            
-            server.uninstallModule("this_wont_exist").then(function() {
-                done(new Error("Unexpected success"));
-            }).otherwise(function(err) {
-                done();
-            }).finally(function() {
-                exec.restore();
-                removeModule.restore();
-            });
-        });
-        it("succeeds when module is found", function(done) {
-            var nodeInfo = [{module:"foo",types:["a"]}];
-            var removeModule = sinon.stub(redNodes,"removeModule",function(md) {
-                return nodeInfo;
-            });
-            var exec = sinon.stub(child_process,"exec",function(cmd,opt,cb) {
-                cb(null,"","");
-            });
-            var exists = sinon.stub(fs,"existsSync", function(fn) { return true; });
-            
-            server.uninstallModule("this_wont_exist").then(function(info) {
-                info.should.eql(nodeInfo);
-                commsMessages.should.have.length(1);
-                commsMessages[0].topic.should.equal("node/removed");
-                commsMessages[0].msg.should.eql(nodeInfo);
-                done();
-            }).otherwise(function(err) {
-                done(err);
-            }).finally(function() {
-                exec.restore();
-                removeModule.restore();
-                exists.restore();
-            });
-        });
-    });
-    
 });

@@ -21,11 +21,13 @@ var path = require("path");
 var events = require("../../events");
 var registry = require("./registry");
 var loader = require("./loader");
+var installer = require("./installer");
 
 var settings;
 
 function init(_settings) {
     settings = _settings;
+    installer.init(settings);
     loader.init(settings);
     registry.init(settings,loader);
 }
@@ -36,12 +38,6 @@ function load(defaultNodesDir,disableNodePathScan) {
     return loader.load(defaultNodesDir,disableNodePathScan);
 }
 
-function addFile(file) {
-    var info = "node-red/"+path.basename(file).replace(/^\d+-/,"").replace(/\.js$/,"");
-    return loader.addFile(file).then(function() {
-        return registry.getNodeInfo(info);
-    });
-}
 function addModule(module) {
     return loader.addModule(module).then(function() {
         return registry.getModuleInfo(module);
@@ -79,9 +75,11 @@ module.exports = {
     enableNode: enableNodeSet,
     disableNode: registry.disableNodeSet,
 
-    addFile: addFile,
     addModule: addModule,
     removeModule: registry.removeModule,
-    
+
+    installModule: installer.installModule,
+    uninstallModule: installer.uninstallModule,
+
     cleanModuleList: registry.cleanModuleList
 };

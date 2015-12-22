@@ -87,8 +87,8 @@ module.exports = function(RED) {
                     node.send(msg);
                 }, node.timeout);
                 this.idList.push(id);
-                if ((node.timeout > 1000) && (node.idList.length === 0)) {
-                    node.status({fill:"blue",shape:"dot"});
+                if ((node.timeout > 1000) && (node.idList.length !== 0)) {
+                    node.status({fill:"blue",shape:"dot",text:" "});
                 }
             });
 
@@ -144,6 +144,7 @@ module.exports = function(RED) {
             this.on("close", function() {
                 clearInterval(this.intervalID);
                 this.buffer = [];
+                node.status({});
             });
 
         } else if (this.pauseType === "queue") {

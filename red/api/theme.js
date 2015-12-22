@@ -47,7 +47,7 @@ function serveFile(app,baseUrl,file) {
     //     var url = baseUrl+path.basename(file);
     //     //console.log(url,"->",file);
     //     app.get(url,function(req, res) {
-    //         res.sendfile(file);
+    //         res.sendFile(file);
     //     });
     //     return "theme"+url;
     // } catch(err) {
@@ -63,7 +63,7 @@ module.exports = {
         var url;
         themeContext = clone(defaultContext);
         themeSettings = null;
-        
+
         if (settings.editorTheme) {
             var theme = settings.editorTheme;
             themeSettings = {};

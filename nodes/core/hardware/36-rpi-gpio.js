@@ -1,5 +1,5 @@
 /**
- * Copyright 2013,2014 IBM Corp.
+ * Copyright 2013,2015 IBM Corp.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -20,7 +20,7 @@ module.exports = function(RED) {
     var spawn = require('child_process').spawn;
     var fs =  require('fs');
 
-    var gpioCommand = __dirname+'/nrgpio';
+    var gpioCommand = __dirname+'/nrgpio.py';
 
     if (!fs.existsSync("/dev/ttyAMA0")) { // unlikely if not on a Pi
         //RED.log.info(RED._("rpi-gpio.errors.ignorenode"));
@@ -231,7 +231,7 @@ module.exports = function(RED) {
         this.butt = n.butt || 7;
         var node = this;
 
-        node.child = spawn(gpioCommand+".py", ["mouse",node.butt]);
+        node.child = spawn(gpioCommand, ["mouse",node.butt]);
         node.status({fill:"green",shape:"dot",text:"common.status.ok"});
 
         node.child.stdout.on('data', function (data) {
@@ -272,6 +272,54 @@ module.exports = function(RED) {
         });
     }
     RED.nodes.registerType("rpi-mouse",PiMouseNode);
+
+    function PiKeyboardNode(n) {
+        RED.nodes.createNode(this,n);
+        var node = this;
+
+        node.child = spawn(gpioCommand, ["kbd","0"]);
+        node.status({fill:"green",shape:"dot",text:"common.status.ok"});
+
+        node.child.stdout.on('data', function (data) {
+            var b = data.toString().trim().split(",");
+            var act = "up";
+            if (b[1] === "1") { act = "down"; }
+            if (b[1] === "2") { act = "repeat"; }
+            node.send({ topic:"pi/key", payload:Number(b[0]), action:act });
+        });
+
+        node.child.stderr.on('data', function (data) {
+            if (RED.settings.verbose) { node.log("err: "+data+" :"); }
+        });
+
+        node.child.on('close', function (code) {
+            node.child = null;
+            node.running = false;
+            if (RED.settings.verbose) { node.log(RED._("rpi-gpio.status.closed")); }
+            if (node.done) {
+                node.status({fill:"grey",shape:"ring",text:"rpi-gpio.status.closed"});
+                node.done();
+            }
+            else { node.status({fill:"red",shape:"ring",text:"rpi-gpio.status.stopped"}); }
+        });
+
+        node.child.on('error', function (err) {
+            if (err.errno === "ENOENT") { node.error(RED._("rpi-gpio.errors.commandnotfound")); }
+            else if (err.errno === "EACCES") { node.error(RED._("rpi-gpio.errors.commandnotexecutable")); }
+            else { node.error(RED._("rpi-gpio.errors.error")+': ' + err.errno); }
+        });
+
+        node.on("close", function(done) {
+            node.status({});
+            if (node.child != null) {
+                node.done = done;
+                node.child.kill('SIGINT');
+                node.child = null;
+            }
+            else { done(); }
+        });
+    }
+    RED.nodes.registerType("rpi-keyboard",PiKeyboardNode);
 
     RED.httpAdmin.get('/rpi-gpio/:id', RED.auth.needsPermission('rpi-gpio.read'), function(req,res) {
         res.json(pitype);

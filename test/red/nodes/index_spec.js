@@ -21,8 +21,16 @@ var when = require("when");
 var sinon = require('sinon');
 
 var index = require("../../../red/nodes/index");
+var flows = require("../../../red/nodes/flows");
+var registry = require("../../../red/nodes/registry");
 
 describe("red/nodes/index", function() {
+    before(function() {
+        sinon.stub(flows,"startFlows");
+    });
+    after(function() {
+        flows.startFlows.restore();
+    });
 
     afterEach(function() {
         index.clearRegistry();
@@ -127,7 +135,7 @@ describe("red/nodes/index", function() {
                }
            });
            var testnode = new TestNode({id:'tab1',type:'test',name:'barney', '_alias':'tab1'});
-           credentials.getDefinition("test").should.have.property('foo');
+           index.getCredentialDefinition("test").should.have.property('foo');
            done();
        });
 

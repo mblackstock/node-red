@@ -29,7 +29,9 @@ module.exports = function(RED) {
         this.ipv = n.ipv || "udp4";
         var node = this;
 
-        var server = dgram.createSocket(node.ipv);  // default to ipv4
+        var opts = {type:node.ipv, reuseAddr:true};
+        if (process.version.indexOf("v0.10") === 0) { opts = node.ipv; }
+        var server = dgram.createSocket(opts);  // default to udp4
 
         server.on("error", function (err) {
             if ((err.code == "EACCES") && (node.port < 1024)) {
@@ -82,9 +84,7 @@ module.exports = function(RED) {
             }
         });
 
-        // Hack for when you have both in and out udp nodes sharing a port
-        //   if udp in starts last it shares better - so give it a chance to be last
-        setTimeout( function() { server.bind(node.port,node.iface); }, 250);
+        server.bind(node.port,node.iface);
     }
     RED.nodes.registerType("udp in",UDPin);
 
@@ -102,8 +102,10 @@ module.exports = function(RED) {
         this.ipv = n.ipv || "udp4";
         var node = this;
 
-        var sock = dgram.createSocket(node.ipv);  // default to ipv4
-        
+        var opts = {type:node.ipv, reuseAddr:true};
+        if (process.version.indexOf("v0.10") === 0) { opts = node.ipv; }
+        var sock = dgram.createSocket(opts);  // default to udp4
+
         sock.on("error", function(err) {
             // Any async error will also get reported in the sock.send call.
             // This handler is needed to ensure the error marked as handled to
@@ -133,10 +135,12 @@ module.exports = function(RED) {
                 }
             });
         } else if (node.outport != "") {
-            sock.bind(node.outport);
-            node.log(RED._("udp.errors.ready",{outport:node.outport,host:node.addr,port:node.port}));
+            setTimeout( function() {
+                sock.bind(node.outport);
+                node.log(RED._("udp.status.ready",{outport:node.outport,host:node.addr,port:node.port}));
+            }, 250);
         } else {
-            node.log(RED._("udp.errors.ready-nolocal",{host:node.addr,port:node.port}));
+            node.log(RED._("udp.status.ready-nolocal",{host:node.addr,port:node.port}));
         }
 
         node.on("input", function(msg) {

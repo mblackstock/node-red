@@ -16,38 +16,152 @@
 
 module.exports = function(RED) {
     "use strict";
-    var http = require("follow-redirects").http;
-    var https = require("follow-redirects").https;
-    var urllib = require("url");
-    var express = require("express");
+    var bodyParser = require("body-parser");
     var getBody = require('raw-body');
-    var mustache = require("mustache");
-    var querystring = require("querystring");
     var cors = require('cors');
-    var jsonParser = express.json();
-    var urlencParser = express.urlencoded();
+    var jsonParser = bodyParser.json();
+    var urlencParser = bodyParser.urlencoded({extended:true});
     var onHeaders = require('on-headers');
+    var typer = require('media-typer');
+    var isUtf8 = require('is-utf8');
 
     function rawBodyParser(req, res, next) {
         if (req._body) { return next(); }
         req.body = "";
         req._body = true;
+
+        var isText = true;
+        var checkUTF = false;
+
+        if (req.headers['content-type']) {
+            var parsedType = typer.parse(req.headers['content-type'])
+            if (parsedType.type === "text") {
+                isText = true;
+            } else if (parsedType.subtype === "xml" || parsedType.suffix === "xml") {
+                isText = true;
+            } else if (parsedType.type !== "application") {
+                isText = false;
+            } else if (parsedType.subtype !== "octet-stream") {
+                checkUTF = true;
+            }
+        }
+
         getBody(req, {
-            limit: '1mb',
             length: req.headers['content-length'],
-            encoding: 'utf8'
+            encoding: isText ? "utf8" : null
         }, function (err, buf) {
             if (err) { return next(err); }
+            if (!isText && checkUTF && isUtf8(buf)) {
+                buf = buf.toString()
+            }
+
             req.body = buf;
             next();
         });
     }
 
+    var corsSetup = false;
+
+    function createRequestWrapper(node,req) {
+        var wrapper = {
+            _req: req
+        };
+        var toWrap = [
+            "param",
+            "get",
+            "is",
+            "acceptsCharset",
+            "acceptsLanguage",
+            "app",
+            "baseUrl",
+            "body",
+            "cookies",
+            "fresh",
+            "hostname",
+            "ip",
+            "ips",
+            "originalUrl",
+            "params",
+            "path",
+            "protocol",
+            "query",
+            "route",
+            "secure",
+            "signedCookies",
+            "stale",
+            "subdomains",
+            "xhr",
+            "socket" // TODO: tidy this up
+        ];
+        toWrap.forEach(function(f) {
+            if (typeof req[f] === "function") {
+                wrapper[f] = function() {
+                    node.warn(RED._("httpin.errors.deprecated-call",{method:"msg.req."+f}));
+                    var result = req[f].apply(req,arguments);
+                    if (result === res) {
+                        return wrapper;
+                    } else {
+                        return result;
+                    }
+                }
+            } else {
+                wrapper[f] = req[f];
+            }
+        });
+
+
+        return wrapper;
+    }
+    function createResponseWrapper(node,res) {
+        var wrapper = {
+            _res: res
+        };
+        var toWrap = [
+            "append",
+            "attachment",
+            "cookie",
+            "clearCookie",
+            "download",
+            "end",
+            "format",
+            "get",
+            "json",
+            "jsonp",
+            "links",
+            "location",
+            "redirect",
+            "render",
+            "send",
+            "sendfile",
+            "sendFile",
+            "sendStatus",
+            "set",
+            "status",
+            "type",
+            "vary"
+        ];
+        toWrap.forEach(function(f) {
+            wrapper[f] = function() {
+                node.warn(RED._("httpin.errors.deprecated-call",{method:"msg.res."+f}));
+                var result = res[f].apply(res,arguments);
+                if (result === res) {
+                    return wrapper;
+                } else {
+                    return result;
+                }
+            }
+        });
+        return wrapper;
+    }
 
     function HTTPIn(n) {
         RED.nodes.createNode(this,n);
         if (RED.settings.httpNodeRoot !== false) {
 
+            if (!n.url) {
+                this.warn(RED._("httpin.errors.missing-path"));
+                return;
+            }
             this.url = n.url;
             this.method = n.method;
             this.swaggerDoc = n.swaggerDoc;
@@ -56,26 +170,27 @@ module.exports = function(RED) {
 
             this.errorHandler = function(err,req,res,next) {
                 node.warn(err);
-                res.send(500);
+                res.sendStatus(500);
             };
 
             this.callback = function(req,res) {
                 var msgid = RED.util.generateId();
                 res._msgid = msgid;
                 if (node.method.match(/(^post$|^delete$|^put$|^options$)/)) {
-                    node.send({_msgid:msgid,req:req,res:res,payload:req.body});
+                    node.send({_msgid:msgid,req:req,res:createResponseWrapper(node,res),payload:req.body});
                 } else if (node.method == "get") {
-                    node.send({_msgid:msgid,req:req,res:res,payload:req.query});
+                    node.send({_msgid:msgid,req:req,res:createResponseWrapper(node,res),payload:req.query});
                 } else {
-                    node.send({_msgid:msgid,req:req,res:res});
+                    node.send({_msgid:msgid,req:req,res:createResponseWrapper(node,res)});
                 }
             };
 
             var corsHandler = function(req,res,next) { next(); }
 
-            if (RED.settings.httpNodeCors) {
+            if (RED.settings.httpNodeCors && !corsSetup) {
                 corsHandler = cors(RED.settings.httpNodeCors);
-                RED.httpNode.options(this.url,corsHandler);
+                RED.httpNode.options("*",corsHandler);
+                corsSetup = true;
             }
 
             var httpMiddleware = function(req,res,next) { next(); }
@@ -117,24 +232,12 @@ module.exports = function(RED) {
             }
 
             this.on("close",function() {
-                var routes = RED.httpNode.routes[this.method];
-                for (var i = 0; i<routes.length; i++) {
-                    if (routes[i].path == this.url) {
+                var node = this;
+                RED.httpNode._router.stack.forEach(function(route,i,routes) {
+                    if (route.route && route.route.path === node.url && route.route.methods[node.method]) {
                         routes.splice(i,1);
-                        //break;
                     }
-                }
-                if (RED.settings.httpNodeCors) {
-                    var routes = RED.httpNode.routes['options'];
-                    if (routes) {
-                        for (var j = 0; j<routes.length; j++) {
-                            if (routes[j].path == this.url) {
-                                routes.splice(j,1);
-                                //break;
-                            }
-                        }
-                    }
-                }
+                });
             });
         } else {
             this.warn(RED._("httpin.errors.not-created"));
@@ -149,13 +252,13 @@ module.exports = function(RED) {
         this.on("input",function(msg) {
             if (msg.res) {
                 if (msg.headers) {
-                    msg.res.set(msg.headers);
+                    msg.res._res.set(msg.headers);
                 }
                 var statusCode = msg.statusCode || 200;
                 if (typeof msg.payload == "object" && !Buffer.isBuffer(msg.payload)) {
-                    msg.res.jsonp(statusCode,msg.payload);
+                    msg.res._res.status(statusCode).jsonp(msg.payload);
                 } else {
-                    if (msg.res.get('content-length') == null) {
+                    if (msg.res._res.get('content-length') == null) {
                         var len;
                         if (msg.payload == null) {
                             len = 0;
@@ -166,10 +269,10 @@ module.exports = function(RED) {
                         } else {
                             len = Buffer.byteLength(msg.payload);
                         }
-                        msg.res.set('content-length', len);
+                        msg.res._res.set('content-length', len);
                     }
 
-                    msg.res.send(statusCode,msg.payload);
+                    msg.res._res.status(statusCode).send(msg.payload);
                 }
             } else {
                 node.warn(RED._("httpin.errors.no-response"));
@@ -177,164 +280,4 @@ module.exports = function(RED) {
         });
     }
     RED.nodes.registerType("http response",HTTPOut);
-
-
-    function HTTPRequest(n) {
-        RED.nodes.createNode(this,n);
-        var nodeUrl = n.url;
-        var isTemplatedUrl = (nodeUrl||"").indexOf("{{") != -1;
-        var nodeMethod = n.method || "GET";
-        this.ret = n.ret || "txt";
-        var node = this;
-
-        var prox, noprox;
-        if (process.env.http_proxy != null) { prox = process.env.http_proxy; }
-        if (process.env.HTTP_PROXY != null) { prox = process.env.HTTP_PROXY; }
-        if (process.env.no_proxy != null) { noprox = process.env.no_proxy.split(","); }
-        if (process.env.NO_PROXY != null) { noprox = process.env.NO_PROXY.split(","); }
-
-        this.on("input",function(msg) {
-            var preRequestTimestamp = process.hrtime();
-            node.status({fill:"blue",shape:"dot",text:"httpin.status.requesting"});
-            var url = nodeUrl || msg.url;
-            if (msg.url && nodeUrl && (nodeUrl !== msg.url)) {  // revert change below when warning is finally removed
-                node.warn(RED._("common.errors.nooverride"));
-            }
-            if (isTemplatedUrl) {
-                url = mustache.render(nodeUrl,msg);
-            }
-            if (!url) {
-                node.error(RED._("httpin.errors.no-url"),msg);
-                return;
-            }
-            // url must start http:// or https:// so assume http:// if not set
-            if (!((url.indexOf("http://") === 0) || (url.indexOf("https://") === 0))) {
-                url = "http://"+url;
-            }
-
-            var method = nodeMethod.toUpperCase() || "GET";
-            if (msg.method && n.method && (n.method !== "use")) {     // warn if override option not set
-                node.warn(RED._("httpin.errors.not-overridden"));
-            }
-            if (msg.method && n.method && (n.method === "use")) {
-                method = msg.method.toUpperCase();          // use the msg parameter
-            }
-            var opts = urllib.parse(url);
-            opts.method = method;
-            opts.headers = {};
-            if (msg.headers) {
-                for (var v in msg.headers) {
-                    if (msg.headers.hasOwnProperty(v)) {
-                        var name = v.toLowerCase();
-                        if (name !== "content-type" && name !== "content-length") {
-                            // only normalise the known headers used later in this
-                            // function. Otherwise leave them alone.
-                            name = v;
-                        }
-                        opts.headers[name] = msg.headers[v];
-                    }
-                }
-            }
-            if (this.credentials && this.credentials.user) {
-                opts.auth = this.credentials.user+":"+(this.credentials.password||"");
-            }
-            var payload = null;
-
-            if (msg.payload && (method == "POST" || method == "PUT" || method == "PATCH" ) ) {
-                if (typeof msg.payload === "string" || Buffer.isBuffer(msg.payload)) {
-                    payload = msg.payload;
-                } else if (typeof msg.payload == "number") {
-                    payload = msg.payload+"";
-                } else {
-                    if (opts.headers['content-type'] == 'application/x-www-form-urlencoded') {
-                        payload = querystring.stringify(msg.payload);
-                    } else {
-                        payload = JSON.stringify(msg.payload);
-                        if (opts.headers['content-type'] == null) {
-                            opts.headers['content-type'] = "application/json";
-                        }
-                    }
-                }
-                if (opts.headers['content-length'] == null) {
-                    if (Buffer.isBuffer(payload)) {
-                        opts.headers['content-length'] = payload.length;
-                    } else {
-                        opts.headers['content-length'] = Buffer.byteLength(payload);
-                    }
-                }
-            }
-            var urltotest = url;
-            var noproxy;
-            if (noprox) {
-                for (var i in noprox) {
-                    if (url.indexOf(noprox[i]) !== -1) { noproxy=true; }
-                }
-            }
-            if (prox && !noproxy) {
-                var match = prox.match(/^(http:\/\/)?(.+)?:([0-9]+)?/i);
-                if (match) {
-                    //opts.protocol = "http:";
-                    //opts.host = opts.hostname = match[2];
-                    //opts.port = (match[3] != null ? match[3] : 80);
-                    opts.headers['Host'] = opts.host;
-                    var heads = opts.headers;
-                    var path = opts.pathname = opts.href;
-                    opts = urllib.parse(prox);
-                    opts.path = opts.pathname = path;
-                    opts.headers = heads;
-                    //console.log(opts);
-                    urltotest = match[0];
-                }
-                else { node.warn("Bad proxy url: "+process.env.http_proxy); }
-            }
-            var req = ((/^https/.test(urltotest))?https:http).request(opts,function(res) {
-                (node.ret === "bin") ? res.setEncoding('binary') : res.setEncoding('utf8');
-                msg.statusCode = res.statusCode;
-                msg.headers = res.headers;
-                msg.payload = "";
-                // msg.url = url;   // revert when warning above finally removed
-                res.on('data',function(chunk) {
-                    msg.payload += chunk;
-                });
-                res.on('end',function() {
-                    if (node.metric()) {
-                        // Calculate request time
-                        var diff = process.hrtime(preRequestTimestamp);
-                        var ms = diff[0] * 1e3 + diff[1] * 1e-6;
-                        var metricRequestDurationMillis = ms.toFixed(3);
-                        node.metric("duration.millis", msg, metricRequestDurationMillis);
-                        if (res.client && res.client.bytesRead) {
-                            node.metric("size.bytes", msg, res.client.bytesRead);
-                        }
-                    }
-                    if (node.ret === "bin") {
-                        msg.payload = new Buffer(msg.payload,"binary");
-                    }
-                    else if (node.ret === "obj") {
-                        try { msg.payload = JSON.parse(msg.payload); }
-                        catch(e) { node.warn(RED._("httpin.errors.json-error")); }
-                    }
-                    node.send(msg);
-                    node.status({});
-                });
-            });
-            req.on('error',function(err) {
-                msg.payload = err.toString() + " : " + url;
-                msg.statusCode = err.code;
-                node.send(msg);
-                node.status({fill:"red",shape:"ring",text:err.code});
-            });
-            if (payload) {
-                req.write(payload);
-            }
-            req.end();
-        });
-    }
-
-    RED.nodes.registerType("http request",HTTPRequest,{
-        credentials: {
-            user: {type:"text"},
-            password: {type: "password"}
-        }
-    });
 }
