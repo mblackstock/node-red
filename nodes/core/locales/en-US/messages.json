@@ -37,8 +37,6 @@
             "repeat": "Repeat"
         },
         "timestamp": "timestamp",
-        "string": "string",
-        "blank": "blank",
         "none": "none",
         "interval": "interval",
         "interval-time": "interval between times",
@@ -47,6 +45,7 @@
         "minutes": "minutes",
         "hours": "hours",
         "between": "between",
+        "previous": "previous value",
         "at": "at",
         "and": "and",
         "every": "every",
@@ -138,7 +137,11 @@
     "template": {
         "label": {
             "template": "Template",
-            "property": "Property"
+            "property": "Set property",
+            "format": "Syntax Highlight",
+            "syntax": "Format",
+            "mustache": "Mustache template",
+            "plain": "Plain text"
         },
         "templatevalue": "This is the payload: {{payload}} !"
     },
@@ -146,7 +149,7 @@
         "action": "Action",
         "for": "For",
         "delaymsg": "Delay message",
-        "ramdomdelay": "Random delay",
+        "randomdelay": "Random delay",
         "limitrate": "Limit rate to",
         "fairqueue": "Topic based fair queue",
         "milisecs": "Miliseconds",
@@ -165,7 +168,7 @@
         "label": {
             "delay": "delay",
             "limit": "limit",
-            "random": "ramdom",
+            "random": "random",
             "queue": "queue"
         },
         "error": {
@@ -177,8 +180,9 @@
         "then": "then",
         "then-send": "then send",
         "output": {
-            "string": "the string payload",
-            "existing": "the existing message",
+            "string": "the string",
+            "number": "the number",
+            "existing": "the existing msg.payload",
             "nothing": "nothing"
         },
         "wait-reset": "wait to be reset",
@@ -189,11 +193,13 @@
             "m": "Minutes",
             "h": "Hours"
         },
-        "extend": "extend delay if new message arrives",
-        "tip": "The node can be reset by sending a message with the <b>msg.reset</b> property set",
+        "extend": " extend delay if new message arrives",
+        "tip": "The node can also be reset by sending a message with the <b>msg.reset</b> property set to any value.",
         "label": {
             "trigger": "trigger",
-            "trigger-block": "trigger & block"
+            "trigger-block": "trigger & block",
+            "reset": "and reset if msg.payload == ",
+            "resetprompt": "(optional reset value)"
         }
     },
     "comment": {
@@ -371,7 +377,8 @@
             "using": "using",
             "output": "Output",
             "group": "Group",
-            "interface": "Interface",
+            "interface": "Local IP",
+            "interfaceprompt": "(optional) local ip address to bind to",
             "send": "Send a",
             "toport": "to port",
             "address": "Address",
@@ -398,7 +405,8 @@
         },
         "tip": {
             "in": "Tip: Make sure your firewall will allow the data in.",
-            "out": "Tip: leave address and port blank if you want to set using <b>msg.ip</b> and <b>msg.port</b>."
+            "out": "Tip: leave address and port blank if you want to set using <b>msg.ip</b> and <b>msg.port</b>.",
+            "port": "Ports already in use: "
         },
         "status": {
             "listener-at": "udp listener at __host__:__port__",
@@ -417,7 +425,8 @@
             "interface": "Must be ip address of the required interface",
             "ip-notset": "udp: ip address not set",
             "port-notset": "udp: port not set",
-            "port-invalid": "udp: port number not valid"
+            "port-invalid": "udp: port number not valid",
+            "alreadyused": "udp: port already in use"
         }
     },
     "switch": {
@@ -459,7 +468,8 @@
             "replace": "Replace with"
         },
         "errors": {
-            "invalid-from": "Invalid 'from' property: __error__"
+            "invalid-from": "Invalid 'from' property: __error__",
+            "invalid-json": "Invalid 'to' JSON property"
         }
     },
     "range": {
@@ -566,6 +576,7 @@
             "readinitial": "Read initial state of pin on deploy/restart?",
             "type": "Type",
             "initpin": "Initialise pin state?",
+            "debounce": "Debounce",
             "button": "Button",
             "pimouse": "Pi Mouse",
             "pikeyboard": "Pi Keyboard",

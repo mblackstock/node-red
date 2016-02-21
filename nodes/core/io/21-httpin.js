@@ -1,5 +1,5 @@
 /**
- * Copyright 2013,2015 IBM Corp.
+ * Copyright 2013, 2016 IBM Corp.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -63,6 +63,8 @@ module.exports = function(RED) {
     var corsSetup = false;
 
     function createRequestWrapper(node,req) {
+        // This misses a bunch of properties (eg headers). Before we use this function
+        // need to ensure it captures everything documented by Express and HTTP modules.
         var wrapper = {
             _req: req
         };
@@ -98,7 +100,7 @@ module.exports = function(RED) {
                 wrapper[f] = function() {
                     node.warn(RED._("httpin.errors.deprecated-call",{method:"msg.req."+f}));
                     var result = req[f].apply(req,arguments);
-                    if (result === res) {
+                    if (result === req) {
                         return wrapper;
                     } else {
                         return result;
@@ -154,6 +156,13 @@ module.exports = function(RED) {
         return wrapper;
     }
 
+    var corsHandler = function(req,res,next) { next(); }
+
+    if (RED.settings.httpNodeCors) {
+        corsHandler = cors(RED.settings.httpNodeCors);
+        RED.httpNode.options("*",corsHandler);
+    }
+
     function HTTPIn(n) {
         RED.nodes.createNode(this,n);
         if (RED.settings.httpNodeRoot !== false) {
@@ -184,14 +193,6 @@ module.exports = function(RED) {
                     node.send({_msgid:msgid,req:req,res:createResponseWrapper(node,res)});
                 }
             };
-
-            var corsHandler = function(req,res,next) { next(); }
-
-            if (RED.settings.httpNodeCors && !corsSetup) {
-                corsHandler = cors(RED.settings.httpNodeCors);
-                RED.httpNode.options("*",corsHandler);
-                corsSetup = true;
-            }
 
             var httpMiddleware = function(req,res,next) { next(); }
 

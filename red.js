@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 /**
- * Copyright 2013, 2015 IBM Corp.
+ * Copyright 2013, 2016 IBM Corp.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -25,7 +25,6 @@ var nopt = require("nopt");
 var path = require("path");
 var fs = require("fs-extra");
 var RED = require("./red/red.js");
-var log = require("./red/log");
 
 var server;
 var app = express();
@@ -37,6 +36,7 @@ var flowFile;
 var knownOpts = {
     "settings":[path],
     "userDir":[path],
+    "port": Number,
     "v": Boolean,
     "help": Boolean,
     "crypto":String
@@ -44,6 +44,7 @@ var knownOpts = {
 var shortHands = {
     "s":["--settings"],
     "u":["--userDir"],
+    "p":["--port"],
     "?":["--help"]
 };
 nopt.invalidHandler = function(k,v,t) {
@@ -54,11 +55,13 @@ var parsedArgs = nopt(knownOpts,shortHands,process.argv,2)
 
 if (parsedArgs.help) {
     console.log("Node-RED v"+RED.version());
-    console.log("Usage: node-red [-v] [-?] [--settings settings.js] [--userDir DIR] [flows.json]");
+    console.log("Usage: node-red [-v] [-?] [--settings settings.js] [--userDir DIR]");
+    console.log("                [--port PORT] [flows.json]");
     console.log("");
     console.log("Options:");
     console.log("  -s, --settings FILE  use specified settings file");
     console.log("  -u, --userDir  DIR   use specified user directory");
+    console.log("  -p, --port     PORT  port to listen on");
     console.log("  -v                   enable verbose output");
     console.log("  -?, --help           show usage");
     console.log("  -crypto SECRET       secret needed to encrypt/decrypt credentials");
@@ -182,7 +185,7 @@ if (settings.httpNodeRoot !== false) {
     settings.httpNodeAuth = settings.httpNodeAuth || settings.httpAuth;
 }
 
-settings.uiPort = settings.uiPort||1880;
+settings.uiPort = parsedArgs.port||settings.uiPort||1880;
 settings.uiHost = settings.uiHost||"0.0.0.0";
 
 if (flowFile) {
@@ -223,6 +226,9 @@ function basicAuthMiddleware(user,pass) {
     }
 
     return function(req,res,next) {
+        if (req.method === 'OPTIONS') {
+            return next();
+        }
         var requestUser = basicAuth(req);
         if (!requestUser || requestUser.name !== user || !checkPassword(requestUser.pass)) {
             res.set('WWW-Authenticate', 'Basic realm=Authorization Required');
@@ -233,7 +239,7 @@ function basicAuthMiddleware(user,pass) {
 }
 
 if (settings.httpAdminRoot !== false && settings.httpAdminAuth) {
-    RED.log.warn(log._("server.httpadminauth-deprecated"));
+    RED.log.warn(RED.log._("server.httpadminauth-deprecated"));
     app.use(settings.httpAdminRoot, basicAuthMiddleware(settings.httpAdminAuth.user,settings.httpAdminAuth.pass));
 }
 
@@ -271,10 +277,10 @@ RED.start().then(function() {
     if (settings.httpAdminRoot !== false || settings.httpNodeRoot !== false || settings.httpStatic) {
         server.on('error', function(err) {
             if (err.errno === "EADDRINUSE") {
-                RED.log.error(log._("server.unable-to-listen", {listenpath:getListenPath()}));
-                RED.log.error(log._("server.port-in-use"));
+                RED.log.error(RED.log._("server.unable-to-listen", {listenpath:getListenPath()}));
+                RED.log.error(RED.log._("server.port-in-use"));
             } else {
-                RED.log.error(log._("server.uncaught-exception"));
+                RED.log.error(RED.log._("server.uncaught-exception"));
                 if (err.stack) {
                     RED.log.error(err.stack);
                 } else {
@@ -285,16 +291,16 @@ RED.start().then(function() {
         });
         server.listen(settings.uiPort,settings.uiHost,function() {
             if (settings.httpAdminRoot === false) {
-                RED.log.info(log._("server.admin-ui-disabled"));
+                RED.log.info(RED.log._("server.admin-ui-disabled"));
             }
             process.title = 'node-red';
-            RED.log.info(log._("server.now-running", {listenpath:getListenPath()}));
+            RED.log.info(RED.log._("server.now-running", {listenpath:getListenPath()}));
         });
     } else {
-        RED.log.info(log._("server.headless-mode"));
+        RED.log.info(RED.log._("server.headless-mode"));
     }
 }).otherwise(function(err) {
-    RED.log.error(log._("server.failed-to-start"));
+    RED.log.error(RED.log._("server.failed-to-start"));
     if (err.stack) {
         RED.log.error(err.stack);
     } else {

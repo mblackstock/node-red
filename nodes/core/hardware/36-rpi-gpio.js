@@ -1,5 +1,5 @@
 /**
- * Copyright 2013,2015 IBM Corp.
+ * Copyright 2013,2016 IBM Corp.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -18,21 +18,25 @@ module.exports = function(RED) {
     "use strict";
     var exec = require('child_process').exec;
     var spawn = require('child_process').spawn;
-    var fs =  require('fs');
+    var fs = require('fs');
 
-    var gpioCommand = __dirname+'/nrgpio.py';
+    var gpioCommand = __dirname+'/nrgpio';
 
-    if (!fs.existsSync("/dev/ttyAMA0")) { // unlikely if not on a Pi
+    try {
+        fs.statSync("/dev/ttyAMA0"); // unlikely if not on a Pi
+    } catch(err) {
         //RED.log.info(RED._("rpi-gpio.errors.ignorenode"));
         throw "Info : "+RED._("rpi-gpio.errors.ignorenode");
     }
 
-    if (!fs.existsSync("/usr/share/doc/python-rpi.gpio")) {
+    try {
+        fs.statSync("/usr/share/doc/python-rpi.gpio");
+    } catch(err) {
         RED.log.warn(RED._("rpi-gpio.errors.libnotfound"));
         throw "Warning : "+RED._("rpi-gpio.errors.libnotfound");
     }
 
-    if ( !(1 & parseInt ((fs.statSync(gpioCommand).mode & parseInt ("777", 8)).toString (8)[0]) )) {
+    if ( !(1 & parseInt((fs.statSync(gpioCommand).mode & parseInt("777", 8)).toString(8)[0]) )) {
         RED.log.error(RED._("rpi-gpio.errors.needtobeexecutable",{command:gpioCommand}));
         throw "Error : "+RED._("rpi-gpio.errors.mustbeexecutable");
     }
@@ -49,6 +53,7 @@ module.exports = function(RED) {
         this.pin = n.pin;
         this.intype = n.intype;
         this.read = n.read || false;
+        this.debounce = Number(n.debounce || 25);
         if (this.read) { this.buttonState = -2; }
         var node = this;
         if (!pinsInUse.hasOwnProperty(this.pin)) {
@@ -61,11 +66,7 @@ module.exports = function(RED) {
         }
 
         if (node.pin !== undefined) {
-            if (node.intype === "tri") {
-                node.child = spawn(gpioCommand, ["in",node.pin]);
-            } else {
-                node.child = spawn(gpioCommand, ["in",node.pin,node.intype]);
-            }
+            node.child = spawn(gpioCommand, ["in",node.pin,node.intype,node.debounce]);
             node.running = true;
             node.status({fill:"green",shape:"dot",text:"common.status.ok"});
 
@@ -120,7 +121,6 @@ module.exports = function(RED) {
     }
     RED.nodes.registerType("rpi-gpio in",GPIOInNode);
 
-
     function GPIOOutNode(n) {
         RED.nodes.createNode(this,n);
         this.pin = n.pin;
@@ -160,7 +160,7 @@ module.exports = function(RED) {
         if (node.pin !== undefined) {
             if (node.set && (node.out === "out")) {
                 node.child = spawn(gpioCommand, [node.out,node.pin,node.level]);
-                } else {
+            } else {
                 node.child = spawn(gpioCommand, [node.out,node.pin]);
             }
             node.running = true;
@@ -210,20 +210,6 @@ module.exports = function(RED) {
         });
 
     }
-
-    var pitype = { type:"" };
-    exec(gpioCommand+" rev 0", function(err,stdout,stderr) {
-        if (err) {
-            RED.log.info(RED._("rpi-gpio.errors.version"));
-        }
-        else {
-            if (stdout.trim() == "0") { pitype = { type:"Compute" }; }
-            else if (stdout.trim() == "1") { pitype = { type:"A/B v1" }; }
-            else if (stdout.trim() == "2") { pitype = { type:"A/B v2" }; }
-            else if (stdout.trim() == "3") { pitype = { type:"Model B+" }; }
-            else { RED.log.info(RED._("rpi-gpio.errors.sawpitype"),stdout.trim()); }
-        }
-    });
     RED.nodes.registerType("rpi-gpio out",GPIOOutNode);
 
     function PiMouseNode(n) {
@@ -231,7 +217,7 @@ module.exports = function(RED) {
         this.butt = n.butt || 7;
         var node = this;
 
-        node.child = spawn(gpioCommand, ["mouse",node.butt]);
+        node.child = spawn(gpioCommand+".py", ["mouse",node.butt]);
         node.status({fill:"green",shape:"dot",text:"common.status.ok"});
 
         node.child.stdout.on('data', function (data) {
@@ -277,7 +263,7 @@ module.exports = function(RED) {
         RED.nodes.createNode(this,n);
         var node = this;
 
-        node.child = spawn(gpioCommand, ["kbd","0"]);
+        node.child = spawn(gpioCommand+".py", ["kbd","0"]);
         node.status({fill:"green",shape:"dot",text:"common.status.ok"});
 
         node.child.stdout.on('data', function (data) {
@@ -320,6 +306,22 @@ module.exports = function(RED) {
         });
     }
     RED.nodes.registerType("rpi-keyboard",PiKeyboardNode);
+
+    var pitype = { type:"" };
+    exec(gpioCommand+" info", function(err,stdout,stderr) {
+        if (err) {
+            RED.log.info(RED._("rpi-gpio.errors.version"));
+        }
+        else {
+            try {
+                var info = JSON.parse( stdout.trim().replace(/\'/g,"\"") );
+                pitype.type = info["TYPE"];
+            }
+            catch(e) {
+                RED.log.info(RED._("rpi-gpio.errors.sawpitype"),stdout.trim());
+            }
+        }
+    });
 
     RED.httpAdmin.get('/rpi-gpio/:id', RED.auth.needsPermission('rpi-gpio.read'), function(req,res) {
         res.json(pitype);

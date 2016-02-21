@@ -22,7 +22,6 @@ var when = require('when');
 var fs = require("fs");
 
 var app = express();
-var settings = require("../../../red/settings");
 
 var theme = require("../../../red/api/theme");
 
@@ -31,11 +30,11 @@ describe("theme handler", function() {
         sinon.stub(fs,"statSync",function() { return true; });
     });
     afterEach(function() {
-        theme.init({});
+        theme.init({settings:{}});
         fs.statSync.restore();
     });
     it("applies the default theme", function() {
-        var result = theme.init({});
+        var result = theme.init({settings:{},version:function() { return '123.456'}});
         should.not.exist(result);
 
         var context = theme.context();
@@ -43,14 +42,15 @@ describe("theme handler", function() {
         context.page.should.have.a.property("title","Node-RED");
         context.page.should.have.a.property("favicon","favicon.ico");
         context.should.have.a.property("header");
-        context.header.should.have.a.property("title","FRED - Cloud Hosted Node-RED");
-        context.header.should.have.a.property("image","red/images/node-red-sts.png");
+        context.header.should.have.a.property("title","Node-RED");
+        context.header.should.have.a.property("image","red/images/node-red.png");
+        context.should.have.a.property("version","123.456");
 
         should.not.exist(theme.settings());
     });
 
     it("picks up custom theme", function() {
-        var result = theme.init({
+        theme.init({settings:{
             editorTheme: {
                 page: {
                     title: "Test Page Title",
@@ -86,7 +86,7 @@ describe("theme handler", function() {
             }
         });
         should.exist(result);
-
+        
         var context = theme.context();
         context.should.have.a.property("page");
         context.page.should.have.a.property("title","Test Page Title");
