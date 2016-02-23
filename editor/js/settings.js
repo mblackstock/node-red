@@ -97,7 +97,7 @@ RED.settings = (function () {
             },
             dataType: "json",
             cache: false,
-            url: '../settings',
+            url: 'settings',
             success: function (data) {
                 setProperties(data);
                 if (RED.settings.user && RED.settings.user.anonymous) {
