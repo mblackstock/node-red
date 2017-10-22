@@ -1,6 +1,6 @@
 # Distributed Node-RED
 
-> ** Note: this project is no longer maintained.  The [DNR Editor project](https://github.com/namgk/dnr-editor) is based on this initial work. **
+> **Note:** this project is no longer maintained.  The [DNR Editor project](https://github.com/namgk/dnr-editor) is based on this initial work.
 
 Node-RED is a visual tool for wiring the Internet of Things.  The Distributed Node-RED (DNR) project extends Node-RED to support flows that can be distributed between devices.  This code is work in progress.
 
